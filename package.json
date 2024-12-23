@@ -1,0 +1,16 @@
+{
+  "name": "puzzle",
+  "version": "0.0.1",
+  "description": "",
+  "bin": {
+    "puzzle": "./src/run.js"
+  },
+  "private": true,
+  "license": "MIT",
+  "dependencies": {
+    "fast-glob": "^3.3.2",
+    "inquirer": "^12.1.0",
+    "node": "^20.11.1",
+    "yargs": "^17.7.2"
+  }
+}

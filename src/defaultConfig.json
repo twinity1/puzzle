@@ -1,0 +1,7 @@
+{
+  "puzzleDir": "puzzle",
+  "aiderArgs": {
+    "no-auto-commit": true,
+    "no-auto-lint": true
+  }
+}

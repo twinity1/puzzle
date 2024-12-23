@@ -1,0 +1,28 @@
+
+# Ignore node_modules folder
+node_modules/
+package-lock.json
+
+# Ignore logs
+logs
+*.log
+npm-debug.log*
+
+# Ignore the config file (if it's not meant to be shared)
+config.json
+
+# Ignore environment variables
+.env
+
+# Ignore the npm debug log file
+npm-debug.log*
+
+# Ignore Mac system files
+.DS_Store
+
+# Ignore the npm ERR! files
+npm ERR!*
+
+# Jetbrains
+.idea
+.aider*

@@ -1,0 +1,205 @@
+[
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "GetArticleListListEnum",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "ListEnum",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Pos",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "ByCode",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Proxy",
+    "TARGET_POS_AREA": "application",
+    "TARGET_SERVICE_NAME": "core",
+    "TARGET_PREFIX_NAMESPACE": "POS.Core",
+    "MODULE_NAME": "Reporting",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "CONTROLLER_MODULE_NAME": "Pos"
+  },
+  {
+    "ACTION_SELECTED": "CustomQuery",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Pos",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles",
+    "CUSTOM_ACTION_NAME": "GetArticeListByCode"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "Update",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "ListEnum",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "List",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "ExportAll",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "Detail",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "Delete",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "Create",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "BulkDeleteAll",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Test",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "MODULE_NAME": "Articles",
+    "ENTITY_NAME": "ArticleList",
+    "CUSTOM_ACTION_NAME": "BulkDelete",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "ExportAll",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "MODULE_NAME": "Articles",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists"
+  },
+  {
+    "ACTION_SELECTED": "Update",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  },
+  {
+    "ACTION_SELECTED": "ListEnum",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  },
+  {
+    "ACTION_SELECTED": "List",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  },
+  {
+    "ACTION_SELECTED": "Delete",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  },
+  {
+    "ACTION_SELECTED": "Create",
+    "POS_AREA": "middleware",
+    "SERVICE_NAME": "core",
+    "PREFIX_NAMESPACE": "POS.Middleware.Core",
+    "ENTITY_NAME": "ArticleList",
+    "CONTROLLER_MODULE_NAME": "Admin",
+    "PLURAL_ENTITY_NAME": "ArticleLists",
+    "MODULE_NAME": "Articles"
+  }
+]
