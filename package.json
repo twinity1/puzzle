@@ -1,12 +1,35 @@
 {
-  "name": "puzzle",
-  "version": "0.0.1",
-  "description": "",
+  "name": "puzzle-ai",
+  "version": "0.0.2",
+  "description": "A flexible CLI tool for code generation and scaffolding that integrates with LLMs to automate common development tasks",
   "bin": {
     "puzzle": "./src/run.js"
   },
   "private": false,
   "license": "MIT",
+  "keywords": [
+    "code-generation",
+    "scaffolding",
+    "llm",
+    "ai",
+    "cli",
+    "productivity",
+    "developer-tools"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/twinity1/puzzle"
+  },
+  "bugs": {
+    "url": "https://github.com/twinity1/puzzle.git/issues"
+  },
+  "homepage": "https://github.com/twinity1/puzzle",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/run.js"
+  },
   "dependencies": {
     "fast-glob": "^3.3.2",
     "inquirer": "^12.1.0",
