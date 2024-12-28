@@ -25,7 +25,7 @@ npm install puzzle
 
 ## Usage
 
-[Follow this guide how to create your first template and start scaffolding](USAGE.MD)
+[Follow this guide how to create your first template and start scaffolding](USAGE.md)
 
 ### Features
 

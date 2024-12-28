@@ -5,7 +5,7 @@
   "bin": {
     "puzzle": "./src/run.js"
   },
-  "private": true,
+  "private": false,
   "license": "MIT",
   "dependencies": {
     "fast-glob": "^3.3.2",

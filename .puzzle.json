@@ -1,8 +1,0 @@
-{
-  "puzzleDir": "example/puzzle",
-  "aiderArgs": {
-    "model": "openrouter/anthropic/claude-3.5-sonnet",
-    "no-auto-commit": true,
-    "no-auto-lint": true
-  }
-}
