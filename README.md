@@ -4,7 +4,6 @@ A flexible CLI tool for code generation and scaffolding that integrates with [ai
 
 ## Why to use this tool?
 
-
 Large Language Models (LLMs) are powerful tools for code generation, but they require proper context to be effective. Without clear examples and relevant files, LLMs often make incorrect assumptions, leading to extensive code rewrites. 
 
 This tool solves these challenges by providing a structured framework for creating templates for common development tasks like endpoint generation, test creation, CRUD generation, documentation, etc..
@@ -16,16 +15,37 @@ With well-designed templates, software development can become a **puzzle** made 
 
 - Node.js (v20 or higher)
 - aider-chat (`pip install aider-chat`)
+- git
 
 ## Installation
    
 ```bash
-npm install puzzle
+npm install puzzle-ai
 ```
+
+- then run `puzzle` command in root of your git repository to init the tool
 
 ## Usage
 
 [Follow this guide how to create your first template and start scaffolding](USAGE.md)
+
+## Configuration
+
+Configuration file `puzzle.json` is located in root of your repository
+
+default config looks like this:
+
+```json
+{
+   "puzzleDir": "puzzle",
+   "aiderArgs": {
+      "no-auto-commit": true,
+      "no-auto-lint": true
+   }
+}
+```
+
+`aiderArgs` will be passed to `aider` command, check `aider --help` for more
 
 ### Features
 
