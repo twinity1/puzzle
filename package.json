@@ -1,6 +1,6 @@
 {
   "name": "puzzle-ai",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A flexible CLI tool for code generation and scaffolding that integrates with LLMs to automate common development tasks",
   "bin": {
     "puzzle": "./src/run.js"

@@ -106,9 +106,9 @@ export async function setup(context) {
 
 export async function prompt(context) {
     return {
-        prompt: \`Implement the operation: \${context.vars['ACTION_SELECTED']} for entity \${context.vars['ENTITY_NAME']} in module \${context.vars['MODULE_NAME']}.
+        prompt: \`Implement the operation: \${context.vars['PIECE_NAME']} for entity \${context.vars['ENTITY_NAME']} in module \${context.vars['MODULE_NAME']}.
         Replace "Example" with the name of the entity.
-        Reference the action \${context.vars['ACTION_SELECTED']} operation like in attached example files.
+        Reference the action \${context.vars['PIECE_NAME']} operation like in attached example files.
         Add endpoint to a controller. Be precise to the example files as you can.\`
     };
 }
@@ -136,7 +136,7 @@ export async function prepare(context) {
         context.addReadFile('be/core/src/DAL/Data/Entities/*.cs');
     }
 
-    if (commands.includes(context.vars['ACTION_SELECTED']) ) {
+    if (commands.includes(context.vars['PIECE_NAME']) ) {
         context.addReadFile('dev/puzzle/common/custom/ExampleValidator.cs');
         context.addReadFile('be/modules/abstraction/src/Modules.Abstraction/Api/Dto/RelationDto.cs');
         context.addWriteFile('be/core/src/BL/Core.Common/Errors/ErrorCodes.cs');
@@ -148,7 +148,7 @@ export async function setup(context) {
         context.addReadFile('be/core/src/DAL/Data/Entities/*.cs');
     }
 
-    if (commands.includes(context.vars['ACTION_SELECTED'])) {
+    if (commands.includes(context.vars['PIECE_NAME'])) {
         const validatorPath = nextTo(context.writeFiles, 'Command.cs', 'Validator');
         context.addWriteFile(validatorPath);
     }

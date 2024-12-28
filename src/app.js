@@ -62,7 +62,8 @@ class App {
             name: 'actionsSelected',
             message: 'Choose one or more piece:',
             choices: actionList.map((action) => ({
-                value: action
+                value: action,
+                checked: this.defaultVarList.PIECE_NAME === action
             })),
         }]);
 

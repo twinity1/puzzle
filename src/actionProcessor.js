@@ -20,7 +20,7 @@ async function processAction(
     modifiedGitFiles
     ) {
     console.log(`Performing action: ${action}`);
-    varList['ACTION_SELECTED'] = action;
+    varList['PIECE_NAME'] = action;
 
     const modules = await getAllModules(puzzleDir, action);
     const allTemplateFiles = [];
