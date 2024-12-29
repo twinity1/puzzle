@@ -4,6 +4,24 @@ const { execSync } = require('child_process');
 const { ensureDirectoryExists } = require('../fileUtils');
 const { ask, aider} = require('../llm/ask');
 
+const README_CONTENT = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
+const USAGE_CONTENT = fs.readFileSync(path.join(__dirname, '../../USAGE.md'), 'utf8')
+    .replace(/## Create Piece Using the Wizard[\s\S]*?(?=## Creating a Piece)/, ''); // do not confuse the LLM with this
+
+const softwareDescription = `
+You are helping to create a new piece for a software project.:
+
+README.md
+
+${README_CONTENT}
+
+USAGE.md
+
+${USAGE_CONTENT}
+
+Prompt:
+`;
+
 async function getPieceName(inquirerPrompt) {
     const { pieceName } = await inquirerPrompt({
         type: 'input',
@@ -22,7 +40,8 @@ async function getPieceInfo(inquirerPrompt) {
     const { pieceInfo } = await inquirerPrompt({
         type: 'editor',
         name: 'pieceInfo',
-        message: 'Provide description for the piece?'
+        message: 'Describe what this piece should do (e.g. "Create "Read" endpoint for an entity that will be used in CRUD")\n' +
+                 'Provide path to example files (controller, vue template, react template, repository, dto, etc.)'
     });
     return pieceInfo;
 }
@@ -32,32 +51,98 @@ async function createNewPiece(puzzleDir, inquirerPrompt) {
 
     const pieceName = await getPieceName(inquirerPrompt);
     const pieceInfo = await getPieceInfo(inquirerPrompt);
+    const readFiles = await selectFilesForPiece(pieceInfo, inquirerPrompt, puzzleDir);
 
-    // Interactive file selection process
+    if (!readFiles.length) {
+        console.log('No files selected for piece creation.');
+        return null;
+    }
+
+    const { pieceDir, normalizedWriteFiles } = await preparePieceStructure(
+        puzzleDir,
+        pieceName,
+        pieceInfo,
+        readFiles,
+        inquirerPrompt
+    );
+
+    if (!pieceDir) {
+        return null;
+    }
+
+    await generatePieceDetails(puzzleDir, pieceName, pieceInfo, readFiles, normalizedWriteFiles);
+    console.log(`Piece '${pieceName}' created 🔥!`);
+
+    return { pieceName };
+}
+
+async function selectFilesForPiece(pieceInfo, inquirerPrompt, puzzleDir) {
     let readFiles = [];
     let continueSelecting = true;
     let selectFilesTries = 0;
 
     while (continueSelecting) {
-        let filesPrompt = '';
-        if (selectFilesTries > 0) {
-            const { filesPrompt: newPrompt } = await inquirerPrompt({
-                type: 'input',
-                name: 'filesPrompt',
-                message: 'Which files should be changed?',
-            });
-            filesPrompt = `Requirement: ${newPrompt}`;
-        }
-
+        const filesPrompt = await getFilesPrompt(selectFilesTries, inquirerPrompt);
         const gitFiles = getGitTrackedFiles();
 
-        const aiPrompt = `
+        if (!await confirmLargeFileProcessing(gitFiles, inquirerPrompt)) {
+            continueSelecting = false;
+            continue;
+        }
+
+        try {
+            readFiles = await getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir);
+        } catch (error) {
+            console.error('Error getting AI file suggestions:');
+            console.error(error.stack || error);
+        }
+
+        continueSelecting = await confirmContinueSelection(readFiles, inquirerPrompt);
+        selectFilesTries++;
+    }
+
+    return readFiles;
+}
+
+async function getFilesPrompt(selectFilesTries, inquirerPrompt) {
+    if (selectFilesTries > 0) {
+        const { filesPrompt: newPrompt } = await inquirerPrompt({
+            type: 'input',
+            name: 'filesPrompt',
+            message: 'Which files should be changed?',
+        });
+        return `Requirement: ${newPrompt}`;
+    }
+    return '';
+}
+
+async function confirmLargeFileProcessing(gitFiles, inquirerPrompt) {
+    if (gitFiles.length > 500) {
+        // Calculate total characters in all file paths
+        const totalChars = gitFiles.reduce((sum, file) => sum + file.length, 0);
+        // Estimate tokens using OpenAI's formula: ~1 token per 4 characters
+        const estimatedTokens = Math.ceil(totalChars / 4);
+
+        const { continueWithLargeFiles } = await inquirerPrompt({
+            type: 'confirm',
+            name: 'continueWithLargeFiles',
+            message: `Warning: Found ${gitFiles.length} files. Processing this many file names (content of files is not exposed!) may use significant LLM tokens (~${estimatedTokens} tokens). Continue?`,
+            default: true
+        });
+        return continueWithLargeFiles;
+    }
+    return true;
+}
+
+async function getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir) {
+    const aiPrompt = `
+${softwareDescription}
+        
 You will be trying to find files for scaffolding template.
 Files will be used as example for scaffolding.
         
 Find files according to description.
 Description of the scaffolding: ${pieceInfo}
-
 
 ${filesPrompt}
 
@@ -71,179 +156,150 @@ Available files in repository:
 ${gitFiles.join('\n')}
 `;
 
-        try {
-            readFiles = JSON.parse(await ask(puzzleDir, aiPrompt));
-        } catch (error) {
-            console.error('Error getting AI file suggestions:', error);
-        }
+    const result = await ask(puzzleDir, aiPrompt, [], []);
+    return JSON.parse(result);
+}
 
-        // Show current selection
-        if (readFiles.length > 0) {
-            console.log('\nCurrently selected files:');
-            readFiles.forEach(file => console.log(`- ${file}`));
-        }
+async function confirmContinueSelection(readFiles, inquirerPrompt) {
+    if (readFiles.length > 0) {
+        console.log('\nCurrently selected files:');
+        readFiles.forEach(file => console.log(`- ${file}`));
+    }
 
-        const { continue: shouldContinue } = await inquirerPrompt({
+    const { continue: shouldContinue } = await inquirerPrompt({
+        type: 'confirm',
+        name: 'continue',
+        message: 'Would you like to add/remove more files?',
+        default: false
+    });
+
+    return shouldContinue;
+}
+
+async function generateAndValidateTemplatePaths(puzzleDir, pieceName, pieceInfo, readFiles, templateDir, inquirerPrompt) {
+    const basePrompt = createPromptMessage(pieceName, pieceInfo);
+    const initialPrompt = `${basePrompt}
+        
+        Complete this task:
+        
+        Give me paths for those files, as json flat array (array of strings).
+        Just fill variables in each path, do not change the path (adding/removing dir in the file path is forbidden)!
+        Each path must contain at least one variable. 
+        
+        If you find dir/part of file that could be common for future generating, then replace the variable in the path.
+        For example {SERVICE_NAME}, {MODULE_NAME}, Create{ENTITY_NAME}Endpoint.cs, {ENTITY_NANE}Component.vue, {APP_NAME}, etc.
+        
+        ${readFiles.join('\n')}`;
+
+    let normalizedWriteFiles = [];
+    let userSatisfied = false;
+    let currentPrompt = initialPrompt;
+
+    while (!userSatisfied) {
+        const writeFilesByAi = JSON.parse(await ask(
+            puzzleDir,
+            currentPrompt,
+            readFiles,
+            []
+        ));
+
+        normalizedWriteFiles = writeFilesByAi.map(filePath =>
+            filePath.startsWith(templateDir) ? filePath : path.join(templateDir, filePath)
+        );
+
+        console.log('\nGenerated template file paths:');
+        normalizedWriteFiles.forEach(file => console.log(`- ${file}`));
+
+        const { confirmFiles, modifyPrompt } = await inquirerPrompt([{
             type: 'confirm',
-            name: 'continue',
-            message: 'Would you like to add more files?',
+            name: 'confirmFiles',
+            message: 'Are these template file paths correct?',
+            default: true
+        }, {
+            type: 'input',
+            name: 'modifyPrompt',
+            message: 'Enter any corrections or additional instructions:',
+            when: (answers) => !answers.confirmFiles,
+            default: ''
+        }]);
+
+        if (confirmFiles) {
+            userSatisfied = true;
+        } else {
+
+            currentPrompt = `${basePrompt}
+                
+                ${modifyPrompt}
+                
+                Here are the last generated file paths:
+                ${writeFilesByAi.join('\n')}
+                
+                Update the file paths based on these instructions.
+                Return the updated paths as a JSON array.`;
+        }
+    }
+
+    return normalizedWriteFiles;
+}
+
+async function preparePieceStructure(puzzleDir, pieceName, pieceInfo, readFiles, inquirerPrompt) {
+    // Step 1: Initialize directories
+    const pieceDir = path.join(puzzleDir, 'pieces', pieceName);
+    const templateDir = path.join(pieceDir, 'template');
+    console.log('Trying to figure out piece template paths...');
+
+    // Step 2: Generate and validate template paths
+    const normalizedWriteFiles = await generateAndValidateTemplatePaths(
+        puzzleDir,
+        pieceName,
+        pieceInfo,
+        readFiles,
+        templateDir,
+        inquirerPrompt
+    );
+
+    // Step 3: Add setup.mjs to the file list
+    normalizedWriteFiles.push(path.join(pieceDir, 'setup.mjs'));
+
+    // Step 4: Confirm final piece generation
+    if (!await confirmPieceGeneration(pieceDir, inquirerPrompt)) {
+        return { pieceDir: null, normalizedWriteFiles: [] };
+    }
+
+    return { pieceDir, normalizedWriteFiles };
+}
+
+function createPromptMessage(pieceName, pieceInfo) {
+    return `
+${softwareDescription}
+
+Piece Name: ${pieceName}
+Piece requirements: ${pieceInfo}
+
+- Files from the existing-working action are attached
+- Convert those files to some sort of neutral form - use word "example" for domain specific naming
+- Do not use variables {} in file contents! Only in paths! 
+`;
+}
+
+async function confirmPieceGeneration(pieceDir, inquirerPrompt) {
+    if (fs.existsSync(pieceDir)) {
+        const { overwritePiece } = await inquirerPrompt({
+            type: 'confirm',
+            name: 'overwritePiece',
+            message: `A piece named '${pieceDir.split(path.sep).pop()}' already exists. Do you want to overwrite it?`,
             default: false
         });
 
-        continueSelecting = shouldContinue;
-        selectFilesTries++;
+        if (!overwritePiece) {
+            console.log('Piece creation cancelled.');
+            return false;
+        }
+
+        console.log(`Removing existing piece directory: ${pieceDir}`);
+        fs.rmSync(pieceDir, { recursive: true, force: true });
     }
 
-    const setupMjsPrompt = `
-    and here's an example of setup.mjs
-
-export async function prepare(context) {
-    context.addReadFile('templates/backend/domain/src/data/entities/ENTITY_NAME}.ts');
-}
-    
-export async function setup(context) {
-}
-
-export async function prompt(context) {
-    return {
-        prompt: \`Implement the operation: \${context.vars['PIECE_NAME']} for entity \${context.vars['ENTITY_NAME']} in module \${context.vars['MODULE_NAME']}.
-        Replace "Example" with the name of the entity.
-        Reference the action \${context.vars['PIECE_NAME']} operation like in attached example files.
-        Add endpoint to a controller. Be precise to the example files as you can.\`
-    };
-}
-
-and it can get complex like this:
-
-import path from 'path';
-
-let queries = [
-    'CustomQuery',
-    'Detail',
-    'List',
-    'ListEnum',
-];
-
-let commands = [
-    'Create',
-    'CustomCommand',
-    'Delete',
-    'Update'
-];
-
-export async function prepare(context) {
-    if (context.vars.ENTITIES) {
-        context.addReadFile('be/core/src/DAL/Data/Entities/*.cs');
-    }
-
-    if (commands.includes(context.vars['PIECE_NAME']) ) {
-        context.addReadFile('dev/puzzle/common/custom/ExampleValidator.cs');
-        context.addReadFile('be/modules/abstraction/src/Modules.Abstraction/Api/Dto/RelationDto.cs');
-        context.addWriteFile('be/core/src/BL/Core.Common/Errors/ErrorCodes.cs');
-    }
-}
-
-export async function setup(context) {
-    if (context.vars.ENTITIES) {
-        context.addReadFile('be/core/src/DAL/Data/Entities/*.cs');
-    }
-
-    if (commands.includes(context.vars['PIECE_NAME'])) {
-        const validatorPath = nextTo(context.writeFiles, 'Command.cs', 'Validator');
-        context.addWriteFile(validatorPath);
-    }
-}
-
-export async function prompt(context) {
-    if (context.vars['ENTERED_CUSTOM_PROMPT']) {
-        return context.vars['ENTERED_CUSTOM_PROMPT'];
-    }
-    
-    if (context.vars['CUSTOM-PROMPT']) {
-        const {userPrompt} = await context.inquirerPrompt({
-            type: 'editor',
-            name: 'userPrompt',
-            default: 'ENTERED_CUSTOM_PROMPT' in context.defaultVars ? context.defaultVars['ENTERED_CUSTOM_PROMPT'] : undefined,
-            message: \`Enter custom instructions.\`,
-        });
-        
-        // no need to enter the prompt again for next action
-        context.vars['ENTERED_CUSTOM_PROMPT'] = userPrompt;
-
-        return userPrompt;
-    }
-    
-    return null; 
-}
-
-function nextTo(files, targetFileExpression, appendFileName) {
-    // Find the target file in the list of files
-    const targetFile = files.find(file => file.includes(targetFileExpression));
-    
-    if (!targetFile) {
-        return null;
-    }
-
-    // Get the directory and base name of the target file
-    const targetDir = path.dirname(targetFile);
-    const targetBase = path.basename(targetFile, path.extname(targetFile));
-
-    // Construct the new file path with the appended file name
-    const newFileName = \`\${targetBase}\${appendFileName}\${path.extname(targetFile)}\`;
-    
-    return path.join(targetDir, newFileName);
-}`;
-
-    // Prepare a comprehensive prompt for piece creation
-    const promptMessage = `
-You are helping to create a new piece for a software project.
-
-piece = action 
-
-Piece Name: ${pieceName}
-Piece requirements (write files - template directory): ${pieceInfo}
-
-- Files from the existing-working action are attached 
-- Convert those files to some sort of neutral form (for example use word "example" for domain specific names
-- Add variables to the directories/files names that could be common
- - for example services/financial/src/modules/invoices/logic.ts will be services/{SERVICE_NAME}/src/modules/{MODULE_NAME}/logic.ts
- - or Endpoints/CreateUser.cs, Endpoints/CreateUserDto.cs,  will be Endpoints/{ACTION_NAME}.cs, Endpoints/{ACTION_NAME}Dto.cs
-- But don't use {} variables inside in file contents.. use word example to replace business specific naming - if you {} inside the file content, it will break the programming language syntax
-
-(pay attention to the {} which are variables)
-`;
-
-    // Create the files and directories according to the AI-generated description
-    const pieceDir = path.join(puzzleDir, 'pieces', pieceName);
-    const templateDir = path.join(pieceDir, 'template');
-
-    console.log('Trying to figure out piece template paths...')
-
-    const writeFilesByAi = await ask(
-        puzzleDir,
-        `${promptMessage}
-        
-        Give me paths for those files, as json flat array (array of strings).
-        Just fill variables in each path, do not change the path drastically! 
-        
-        ${readFiles.join('\n')}
-        `,
-        readFiles,
-        []
-    );
-
-    console.log(writeFilesByAi);
-
-    // Ensure write files are in the template directory
-    const normalizedWriteFiles = JSON.parse(writeFilesByAi).map(filePath =>
-        filePath.startsWith(templateDir) ? filePath : path.join(templateDir, filePath)
-    );
-
-    normalizedWriteFiles.push(path.join(pieceDir, 'setup.mjs'));
-
-    console.log(normalizedWriteFiles.join('\n'));
-
-    // Confirm before generating piece details
     const { confirmGeneration } = await inquirerPrompt({
         type: 'confirm',
         name: 'confirmGeneration',
@@ -253,41 +309,33 @@ Piece requirements (write files - template directory): ${pieceInfo}
 
     if (!confirmGeneration) {
         console.log('Piece generation cancelled.');
-        return null;
+        return false;
     }
 
-    // Check if the piece already exists
-    if (fs.existsSync(pieceDir)) {
-        const { overwritePiece } = await inquirerPrompt({
-            type: 'confirm',
-            name: 'overwritePiece',
-            message: `A piece named '${pieceName}' already exists. Do you want to overwrite it?`,
-            default: false
-        });
+    return true;
+}
 
-        if (!overwritePiece) {
-            console.log('Piece creation cancelled.');
-            return null;
-        }
+async function generatePieceDetails(puzzleDir, pieceName, pieceInfo, readFiles, normalizedWriteFiles) {
+    const promptMessage = createPromptMessage(pieceName, pieceInfo);
 
-        // Remove existing piece directory
-        console.log(`Removing existing piece directory: ${pieceDir}`);
-        fs.rmSync(pieceDir, { recursive: true, force: true });
-    }
-
-    // Use AI to generate piece details
     console.log('Generating piece details using AI...');
     await aider(
         puzzleDir,
-        `${promptMessage} \n\n${setupMjsPrompt}`,
+        `${promptMessage}
+
+Complete this task:
+Create the template (piece) according to attached read-only files.
+Do not add attached read-only files to prepare method as addReadFile('....') or don't mentioned them anywhere. Example files that you will generate will be sufficient as example.
+
+This is the list of the read-only files that you will create the template from:
+${readFiles.join('\n')}
+
+Write result to those files:
+${normalizedWriteFiles.join('\n')}
+`,
         readFiles,
         normalizedWriteFiles);
     console.log('AI piece details generated successfully');
-
-    // Add message that piece is created with AI assistance
-    console.log(`Piece '${pieceName}' created 🔥!`);
-
-    return { pieceName };
 }
 
 function getGitTrackedFiles() {

@@ -1,5 +1,24 @@
 # Usage Guide
 
+## Create Piece Using the Wizard
+
+To create a new piece, use the `puzzle create-piece` command to launch the interactive wizard.
+
+While the generated result may require some refinement, it provides a great starting point.
+
+Here's an example of what your piece creation prompt might look like:
+
+```
+Create scaffolding for entity creation with the following requirements:
+
+- Use an editor prompt to collect entity details from the user
+- Reference these example files:
+  => src/Data/Entities/User.cs 
+  => src/Data/EntityConfigurations/UserEntityTypeConfiguration.cs
+```
+
+For a detailed explanation of the piece structure, please refer to the following chapters.
+
 ## Creating a Piece
 
 1. A "piece" represents a set of templates for code scaffolding. It can be used for various purposes like endpoint creation, CRUD operations, test generation, etc.
@@ -172,7 +191,7 @@ You can re-run last 10 piece runs.
 
 - Simply run puzzle with `--history` argument and select an action you want to rerun
 - In combination with custom user prompt you can iterate on the generated code
-- Or you can run different piece with common variables (eg. ENTITY_NAME) will be automatically filled
+- Or you can run different piece with common variables (e.g. ENTITY_NAME) will be automatically filled
 
 command: `puzzle --history`
 

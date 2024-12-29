@@ -15,6 +15,7 @@ function isAiderInstalled() {
     }
 }
 
+
 async function main() {
     if (!isAiderInstalled()) {
         console.error('Error: aider-chat is not installed.');
@@ -25,10 +26,12 @@ async function main() {
     const argv = yargs(hideBin(process.argv))
         .scriptName('puzzle')
         .usage('$0 [options]', 'Run the puzzle solver for code scaffolding')
-        .command('create-piece', 'Create a new puzzle piece template', {
-            description: 'Interactive wizard to create a new piece template for code scaffolding.\n' +
+        .command('create-piece', 'Create a new puzzle piece template', (yargs) => {
+            return yargs
+                .usage('$0 create-piece')
+                .describe('Interactive wizard to create a new piece template for code scaffolding.\n' +
                         'A "piece" represents a set of templates for code generation.\n' +
-                        'It can be used for various purposes like endpoint creation, CRUD operations, test generation, etc.'
+                        'It can be used for various purposes like endpoint creation, CRUD operations, test generation, etc.');
         })
         .command('$0', 'Run the puzzle solver', (yargs) => {
             return yargs

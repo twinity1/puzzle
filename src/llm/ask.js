@@ -16,12 +16,12 @@ async function ask(scriptDir, message, readFiles = [], writeFiles = []) {
         }
 
         // Write message to a file
-        fs.writeFileSync(messageFile, `Save the answer to ${answerFile}. You write the answer to the file and do not output any other information! Request: ${message}`);
+        fs.writeFileSync(messageFile, `Save the answer to ${answerFile}. Write the answer to the file and do not output any other information! Is is very important when JSON or any other format is requested.  Request: ${message}`);
 
         const readFilesArgs = readFiles.map(file => `--read "${file}"`).join(' ');
         const writeFilesArgs = writeFiles.map(file => `--file "${file}"`).join(' ');
         execSync(
-            `aider --edit-format whole --no-git --no-auto-commit --no-auto-lint --file ${answerFile} --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`,
+            `aider --no-suggest-shell-commands --no-detect-urls --edit-format whole --no-git --no-auto-commit --no-auto-lint --file ${answerFile} --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`,
             {stdio: 'inherit'});
 
         const content = fs.readFileSync(answerFile, 'utf-8');
@@ -32,6 +32,7 @@ async function ask(scriptDir, message, readFiles = [], writeFiles = []) {
 
         return content;
     } catch (error) {
+        console.error(error.stack || error);
         throw `Error during LLM interaction: ${error.message}`;
     }
 }
@@ -45,7 +46,7 @@ async function aider(scriptDir, message, readFiles = [], writeFiles = []) {
 
         const readFilesArgs = readFiles.map(file => `--read "${file}"`).join(' ');
         const writeFilesArgs = writeFiles.map(file => `--file "${file}"`).join(' ');
-        const aiderCommand = `aider --no-auto-commit --no-auto-lint --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`;
+        const aiderCommand = `aider --no-suggest-shell-commands --no-detect-urls --no-auto-commit --no-auto-lint --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`;
 
         console.log(`Executing command: ${aiderCommand}`);
 

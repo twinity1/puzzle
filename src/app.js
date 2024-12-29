@@ -57,6 +57,29 @@ class App {
         const actionDir = path.join(this.config.puzzleDir, 'pieces');
         const actionList = getActionList(actionDir);
 
+        if (actionList.length === 0) {
+            const { createPiece } = await this.inquirerPrompt({
+                type: 'confirm',
+                name: 'createPiece',
+                message: 'No pieces found. Would you like to create a new piece?',
+                default: true
+            });
+
+            if (createPiece) {
+                const { createNewPiece } = require('./modules/wizardHandler');
+                await createNewPiece(this.config.puzzleDir, this.inquirerPrompt);
+
+                // Check if any actions were created
+                const newActionList = getActionList(actionDir);
+                if (newActionList.length > 0) {
+                    return await this.selectActions();
+                }
+
+                return [];
+            }
+            throw new Error('No puzzle selected. Exiting.');
+        }
+
         const { actionsSelected } = await this.inquirerPrompt([{
             type: 'checkbox',
             name: 'actionsSelected',
