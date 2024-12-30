@@ -230,3 +230,13 @@ export async function prompt(context) {
     }
 }
 ```
+
+### Chat Mode
+
+When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
+
+```bash
+puzzle --chat
+```
+
+This allows for back-and-forth conversation with the AI.

@@ -116,18 +116,15 @@ async function processAction(
         filesLink += ` \\\n --file "${filePath}"`;
     });
 
-    let aiderArgs = puzzleConfig.aiderArgs;
-    let additionalAiderCmd = '';
+    let additionalAiderCmd = buildAiderCmdArgs(puzzleConfig.aiderArgs);
 
-    for (let key in aiderArgs) {
-        if (aiderArgs[key] === true) {
-            additionalAiderCmd += ` \\\n --${key}`;
-        } else {
-            additionalAiderCmd += ` \\\n --${key} "${aiderArgs[key]}"`;
-        }
+    let aiderCmd;
+    if (varList['CHAT'] === true) {
+        const promptContent = fs.readFileSync(promptFilePath, 'utf8');
+        aiderCmd = `cat "${promptFilePath}" | aider ${additionalAiderCmd}${filesLink}`;
+    } else {
+        aiderCmd = `aider ${additionalAiderCmd} \\\n --message-file ${promptFilePath}${filesLink}`;
     }
-
-    const aiderCmd = `aider ${additionalAiderCmd} \\\n --message-file ${promptFilePath}${filesLink}`;
     console.log(`Executing command: ${aiderCmd}`);
     execSync(aiderCmd, {stdio: 'inherit'});
 
@@ -204,6 +201,19 @@ async function promptVariables(varList, promptFnc, defaultVarList, allFiles) {
             varList[key] = promptRes[key];
         }
     }
+}
+
+function buildAiderCmdArgs(aiderArgs) {
+    let additionalAiderCmd = '';
+
+    for (let key in aiderArgs) {
+        if (aiderArgs[key] === true) {
+            additionalAiderCmd += ` \\\n --${key}`;
+        } else {
+            additionalAiderCmd += ` \\\n --${key} "${aiderArgs[key]}"`;
+        }
+    }
+    return additionalAiderCmd;
 }
 
 module.exports = {
