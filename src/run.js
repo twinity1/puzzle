@@ -53,6 +53,10 @@ async function main() {
                     description: 'Include modified git files for writing\n' +
                                 'Allows the LLM to modify existing files'
                 })
+                .option('chat', {
+                    type: 'boolean',
+                    description: 'Enables aider chat mode instead of instant command exit'
+                })
                 .epilogue('For more information, see the full documentation at USAGE.md\n' +
                         'Key features:\n' +
                         '  - Create reusable code templates\n' +
