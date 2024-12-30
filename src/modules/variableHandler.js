@@ -14,15 +14,17 @@ function scanVariablesInFilePath(path, varList) {
 
 function simplifyPathWithVariable(filePath, variableKey) {
     if (!filePath) return filePath;
-    
+
     const parts = filePath.split(path.sep);
     const varIndex = parts.findIndex(part => part.includes(`{${variableKey}}`));
-    
+
     if (varIndex === -1) return filePath;
 
     const highlightedParts = parts.map((part, index) => {
         if (index === varIndex) {
-            return `\x1b[34m${part}\x1b[0m`; // Blue for variable
+            // Color only the variable portion, keep the rest of segment gray
+            const varPattern = new RegExp(`(\\{${variableKey}\\})`, 'g');
+            return `\x1b[90m${part.replace(varPattern, '\x1b[34m$1\x1b[90m')}\x1b[0m`;
         }
         return `\x1b[90m${part}\x1b[0m`; // Gray for path segments
     });

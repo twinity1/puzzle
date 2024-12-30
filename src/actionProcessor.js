@@ -161,14 +161,38 @@ async function resolveAllVars(
 }
 
 async function promptVariables(varList, promptFnc, defaultVarList, allFiles) {
-    for (const key of Object.keys(varList).sort()) {
+    // Create a map of variables to their shallowest occurrence depth
+    const varDepths = {};
+    for (const key of Object.keys(varList)) {
+        const paths = allFiles.filter(file => file.includes(`{${key}}`));
+        if (paths.length > 0) {
+            // Find minimum depth based on variable position in path
+            varDepths[key] = Math.min(...paths.map(p => {
+                const parts = p.split(path.sep);
+                const varIndex = parts.findIndex(part => part.includes(`{${key}}`));
+                return varIndex; // Use the index position where variable appears
+            }));
+        } else {
+            varDepths[key] = Infinity; // Variables not found in any files go last
+        }
+    }
+
+    // Sort keys by depth first, then alphabetically
+    const sortedKeys = Object.keys(varList).sort((a, b) => {
+        const depthDiff = varDepths[a] - varDepths[b];
+        return depthDiff !== 0 ? depthDiff : a.localeCompare(b);
+    });
+
+    for (const key of sortedKeys) {
         if (varList[key] === undefined) {
             // Find first file containing this variable
             const exampleFile = allFiles.find(file => file.includes(`{${key}}`));
             const simplifiedPath = simplifyPathWithVariable(exampleFile, key);
+
+            const coloredKey = `\x1b[34m${key}\x1b[0m`;
             const message = exampleFile
-                ? `Please provide a value for ${key} (used in ...${path.sep}${simplifiedPath}):`
-                : `Please provide a value for ${key}:`;
+                ? `Please provide a value for ${coloredKey} (used in ...${path.sep}${simplifiedPath}):`
+                : `Please provide a value for ${coloredKey}:`;
 
             const promptRes = await promptFnc({
                 type: 'input',
