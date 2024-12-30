@@ -17,32 +17,50 @@ class HistoryHandler {
         // Check and offer to add .puzzle.history.json to .gitignore if not already present
         await this.checkAndUpdateGitignore();
 
-        if (!varList['HISTORY']) return null;
-
-        if (fs.existsSync(this.historyPath)) {
-            const history = JSON.parse(fs.readFileSync(this.historyPath, 'utf8'));
-            const first10Records = history.slice(0, 10);
-
-            if (first10Records.length > 0) {
-                const choices = first10Records.map((record, index) => ({
-                    name: `Record ${index + 1}: ${JSON.stringify(record).replaceAll("\"", "")}`,
-                    value: record
-                }));
-
-                const promptFnc = inquirer.createPromptModule();
-                const {selectedRecord} = await promptFnc([{
-                    type: 'list',
-                    name: 'selectedRecord',
-                    message: 'Select a record to view details:',
-                    choices
-                }]);
-
-                return selectedRecord;
-            }
-            console.log('No records found in history.json.');
+        if (!fs.existsSync(this.historyPath)) {
+            console.log('No history found.');
             return null;
         }
-        console.log('No history found.');
+
+        const history = JSON.parse(fs.readFileSync(this.historyPath, 'utf8'));
+        const first10Records = history.slice(0, 10);
+
+        if (!varList['HISTORY']) {
+            // Collect variables from all records, if the variable is found then don't search for it
+            if (first10Records.length > 0) {
+                const collectedVars = {};
+                // Iterate through all records to collect variables
+                for (const record of first10Records) {
+                    for (const [key, value] of Object.entries(record)) {
+                        // Only collect if the variable isn't already set
+                        if (key !== 'PIECE_NAME' && !(key in varList)) {
+                            collectedVars[key] = value;
+                        }
+                    }
+                }
+                return collectedVars;
+            }
+            return null;
+        }
+
+        if (first10Records.length > 0) {
+            const choices = first10Records.map((record, index) => ({
+                name: `Record ${index + 1}: ${JSON.stringify(record).replaceAll("\"", "")}`,
+                value: record
+            }));
+
+            const promptFnc = inquirer.createPromptModule();
+            const {selectedRecord} = await promptFnc([{
+                type: 'list',
+                name: 'selectedRecord',
+                message: 'Select a record to view details:',
+                choices
+            }]);
+
+            return selectedRecord;
+        }
+
+        console.log('No records found in history.json.');
         return null;
     }
 

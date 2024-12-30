@@ -115,21 +115,27 @@ class App {
                 delete this.varList['HISTORY'];
             }
 
-            const actionsSelected = await this.selectActions();
+            try {
+                const actionsSelected = await this.selectActions();
+                
+                for (const action of actionsSelected) {
+                    await processAction(
+                        action,
+                        this.varList,
+                        this.config.puzzleDir,
+                        process.cwd(),
+                        this.inquirerPrompt,
+                        this.defaultVarList,
+                        this.config,
+                        gitFiles
+                    );
 
-            for (const action of actionsSelected) {
-                await processAction(
-                    action,
-                    this.varList,
-                    this.config.puzzleDir,
-                    process.cwd(),
-                    this.inquirerPrompt,
-                    this.defaultVarList,
-                    this.config,
-                    gitFiles
-                );
-
+                    this.historyHandler.updateHistory(this.varList);
+                }
+            } catch (error) {
+                // Save variables to history even if selection is interrupted
                 this.historyHandler.updateHistory(this.varList);
+                throw error;
             }
         } catch (error) {
             console.error('Error:', error.message);
