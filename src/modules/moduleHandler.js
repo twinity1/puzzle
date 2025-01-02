@@ -8,6 +8,13 @@ async function getAllModules(puzzleDir, action) {
     return modules;
 }
 
+function getImportPath(filePath) {
+    if (process.platform === 'win32' && path.isAbsolute(filePath)) {
+        return `file:///${filePath.replace(/\\/g, '/')}`;
+    }
+    return filePath;
+}
+
 async function addCommonModule(puzzleDir, modules) {
     const commonDir = path.join(puzzleDir, 'common');
     const commonDirSetupPath = path.join(commonDir, 'setup.mjs');
@@ -18,7 +25,7 @@ async function addCommonModule(puzzleDir, modules) {
     if (commonDirSetupExists || commonDirExists) {
         modules.push({
             dir: commonDirExists ? commonDir : undefined,
-            setup: commonDirSetupExists ? await import(commonDirSetupPath) : undefined
+            setup: commonDirSetupExists ? await import(getImportPath(commonDirSetupPath)) : undefined
         });
     }
 }
@@ -26,7 +33,7 @@ async function addCommonModule(puzzleDir, modules) {
 async function addActionModule(puzzleDir, action, modules) {
     const actionsDir = path.join(puzzleDir, 'pieces');
     const actionDirPath = path.join(actionsDir, action);
-    const actionModuleSetup = await import(path.join(actionDirPath, 'setup.mjs'));
+    const actionModuleSetup = await import(getImportPath(path.join(actionDirPath, 'setup.mjs')));
 
     modules.push({
         dir: actionDirPath,
