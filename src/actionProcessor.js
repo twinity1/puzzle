@@ -120,8 +120,7 @@ async function processAction(
 
     let aiderCmd;
     if (varList['CHAT'] === true) {
-        const promptContent = fs.readFileSync(promptFilePath, 'utf8');
-        aiderCmd = `cat "${promptFilePath}" | aider ${additionalAiderCmd}${filesLink}`;
+        aiderCmd = `aider ${additionalAiderCmd}${filesLink} \\\n --read "${promptFilePath}"`;
     } else {
         aiderCmd = `aider ${additionalAiderCmd} \\\n --message-file ${promptFilePath}${filesLink}`;
     }

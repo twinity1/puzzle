@@ -48,7 +48,7 @@ class App {
 
     async getGitFiles(varList) {
         if (isGitReadRequested(varList) || isGitWriteRequested(varList)) {
-            return await getModifiedGitFiles();
+            return await getModifiedGitFiles(this.config.puzzleDir);
         }
         return [];
     }
