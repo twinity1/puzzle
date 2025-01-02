@@ -91,10 +91,35 @@ async function selectFilesForPiece(pieceInfo, inquirerPrompt, puzzleDir) {
         }
 
         try {
-            readFiles = await getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir);
+            // Only try AI suggestions if we haven't failed before
+            if (selectFilesTries === 0) {
+                readFiles = await getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir);
+            } else {
+                throw new Error('Skipping AI suggestions after previous failure');
+            }
         } catch (error) {
             console.error('Error getting AI file suggestions:');
             console.error(error.stack || error);
+
+            // Offer manual file selection
+            const { manualFiles } = await inquirerPrompt({
+                type: 'editor',
+                name: 'manualFiles',
+                message: 'Enter file paths manually (from root of the repo, one per line or comma separated):'
+            });
+
+            // Split input by newlines or commas and trim whitespace
+            const newFiles = manualFiles.split(/[\n,]/)
+                .map(file => file.trim())
+                .filter(file => file.length > 0);
+
+            // Add only files that exist in git repository
+            const gitFiles = getGitTrackedFiles();
+            newFiles.forEach(file => {
+                if (gitFiles.includes(file) && !readFiles.includes(file)) {
+                    readFiles.push(file);
+                }
+            });
         }
 
         continueSelecting = await confirmContinueSelection(readFiles, inquirerPrompt);
@@ -135,6 +160,35 @@ async function confirmLargeFileProcessing(gitFiles, inquirerPrompt) {
 }
 
 async function getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir) {
+    // Create a tree structure from the file paths
+    const pathTree = {};
+
+    gitFiles.forEach(filePath => {
+        const parts = filePath.split(path.sep);
+        let currentLevel = pathTree;
+
+        parts.forEach((part, index) => {
+            if (!currentLevel[part]) {
+                currentLevel[part] = {};
+            }
+            currentLevel = currentLevel[part];
+        });
+    });
+
+    // Convert tree to compact string representation
+    const buildTreeString = (node, indent = '') => {
+        let result = '';
+        Object.keys(node).forEach(key => {
+            result += `${indent}${key}\n`;
+            if (Object.keys(node[key]).length > 0) {
+                result += buildTreeString(node[key], indent + '  ');
+            }
+        });
+        return result;
+    };
+
+    const gitFilesString = buildTreeString(pathTree);
+
     const aiPrompt = `
 ${softwareDescription}
         
@@ -153,7 +207,7 @@ Suggest only existing files!!
 Provide JSON array (flat array) of file paths from the repository that are most relevant.
 
 Available files in repository:
-${gitFiles.join('\n')}
+${gitFilesString}
 `;
 
     const result = await ask(puzzleDir, aiPrompt, [], []);
