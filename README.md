@@ -14,16 +14,20 @@ With well-designed templates, software development can become a **puzzle** made 
 ## Prerequisites
 
 - Node.js (v20 or higher)
-- aider-chat (`pip install aider-chat`)
+- aider-chat (`python -m pip install aider-install`) [aider installation](https://aider.chat/docs/install.html)
 - git
 
 ## Installation
    
 ```bash
-npm install puzzle-ai
+npm install -g puzzle-ai
+
+cd /your/project/path
+
+puzzle
 ```
 
-- then run `puzzle` command in root of your git repository to init the tool
+- run `puzzle` command in root of your git repository to init the tool
 
 ## Usage
 
