@@ -17,6 +17,9 @@ function isAiderInstalled() {
 
 
 async function main() {
+    const { checkForUpdates } = require('./utils/versionCheck');
+    await checkForUpdates();
+
     if (!isAiderInstalled()) {
         const { default: inquirer } = await import('inquirer');
         const { install } = await inquirer.prompt({
