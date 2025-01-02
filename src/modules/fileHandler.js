@@ -18,7 +18,7 @@ function getWriteAndReadFilesFromTemplateFiles(repoPath, modules, varList) {
         let targetFileList = updateFilePaths(templateFiles, varList);
 
         targetFileList = targetFileList.map(filePath => {
-            const strippedPath = filePath.replace(`${module.dir}/template`, '');
+            const strippedPath = filePath.replace(`${module.dir}${path.sep}template`, '');
             return path.join(repoPath, strippedPath);
         });
 

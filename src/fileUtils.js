@@ -103,11 +103,16 @@ const findFileInDirectoriesUp = (fileName) => {
     return null;
 }
 
+function getLineContinuation() {
+    return process.platform === 'win32' ? ' ' : ' \\\n';
+}
+
 module.exports = {
     getActionList,
     getFilesFromSection,
     unfoldWildcards,
     ensureDirectoryExists,
     writePromptToFile,
-    findFileInDirectoriesUp
+    findFileInDirectoriesUp,
+    getLineContinuation
 };

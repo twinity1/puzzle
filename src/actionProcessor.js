@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { scanVariablesInFilePath, updateFilePaths, simplifyPathWithVariable } = require('./modules/variableHandler');
 const { ask } = require('./llm/ask');
-const { getFilesFromSection, ensureDirectoryExists } = require('./fileUtils');
+const { getFilesFromSection, ensureDirectoryExists, getLineContinuation } = require('./fileUtils');
 const { isGitReadRequested, isGitWriteRequested } = require('./git');
 const { getAllModules } = require('./modules/moduleHandler');
 const { getWriteAndReadFilesFromTemplateFiles, resolveVarsAndUpdateFilePath } = require('./modules/fileHandler');
@@ -104,25 +104,26 @@ async function processAction(
     }
 
     let filesLink = '';
+    const lineContinuation = getLineContinuation();
 
     finalReadFiles
         .filter(filePath => !finalWriteFiles.includes(filePath))
         .forEach((filePath) => {
-        filesLink += ` \\\n --read "${filePath}"`;
+        filesLink += `${lineContinuation} --read "${filePath}"`;
     });
 
     finalWriteFiles.forEach((filePath) => {
         ensureDirectoryExists(filePath);
-        filesLink += ` \\\n --file "${filePath}"`;
+        filesLink += `${lineContinuation} --file "${filePath}"`;
     });
 
     let additionalAiderCmd = buildAiderCmdArgs(puzzleConfig.aiderArgs);
 
     let aiderCmd;
     if (varList['CHAT'] === true) {
-        aiderCmd = `aider ${additionalAiderCmd}${filesLink} \\\n --read "${promptFilePath}"`;
+        aiderCmd = `aider ${additionalAiderCmd}${filesLink}${lineContinuation} --read "${promptFilePath}"`;
     } else {
-        aiderCmd = `aider ${additionalAiderCmd} \\\n --message-file ${promptFilePath}${filesLink}`;
+        aiderCmd = `aider ${additionalAiderCmd}${lineContinuation} --message-file ${promptFilePath}${filesLink}`;
     }
     console.log(`Executing command: ${aiderCmd}`);
     execSync(aiderCmd, {stdio: 'inherit'});
@@ -204,12 +205,13 @@ async function promptVariables(varList, promptFnc, defaultVarList, allFiles) {
 
 function buildAiderCmdArgs(aiderArgs) {
     let additionalAiderCmd = '';
+    const lineContinuation = getLineContinuation();
 
     for (let key in aiderArgs) {
         if (aiderArgs[key] === true) {
-            additionalAiderCmd += ` \\\n --${key}`;
+            additionalAiderCmd += `${lineContinuation} --${key}`;
         } else {
-            additionalAiderCmd += ` \\\n --${key} "${aiderArgs[key]}"`;
+            additionalAiderCmd += `${lineContinuation} --${key} "${aiderArgs[key]}"`;
         }
     }
     return additionalAiderCmd;
