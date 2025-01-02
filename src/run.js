@@ -2,52 +2,18 @@
 
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
-const { execSync } = require('child_process');
 const App = require('./app');
 const ConfigHandler = require('./config/configHandler');
-
-function isAiderInstalled() {
-    try {
-        execSync('aider --help', { stdio: 'ignore' });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
+const { checkAndInstallAider } = require('./utils/aiderCheck');
 
 async function main() {
-    const { checkForUpdates } = require('./utils/versionCheck');
-    await checkForUpdates();
-
-    if (!isAiderInstalled()) {
-        const { default: inquirer } = await import('inquirer');
-        const { install } = await inquirer.prompt({
-            type: 'confirm',
-            name: 'install',
-            message: 'aider-chat is not installed. Would you like to install it now?',
-            default: true
-        });
-
-        if (install) {
-            try {
-                const { execSync } = require('child_process');
-                console.log('Installing aider-chat...');
-                execSync('python -m pip install aider-install && aider-install', { stdio: 'inherit' });
-                console.log('aider-chat installed successfully!');
-            } catch (error) {
-                console.error('Failed to install aider-chat:', error);
-                process.exit(1);
-            }
-        } else {
-            console.log('You can install aider-chat manually using: python -m pip install aider-install && aider-install');
-            process.exit(1);
-        }
-    }
-
     const argv = yargs(hideBin(process.argv))
         .scriptName('puzzle')
         .usage('$0 [options]', 'Run the puzzle solver for code scaffolding')
+        .option('no-update-check', {
+            type: 'boolean',
+            description: 'Skip version and dependency update checks'
+        })
         .command('create-piece', 'Create a new puzzle piece template', (yargs) => {
             return yargs
                 .usage('$0 create-piece')
@@ -92,6 +58,13 @@ async function main() {
         .version()
         .alias('v', 'version')
         .argv;
+
+    await checkAndInstallAider();
+
+    if (argv.updateCheck !== false) {
+        const { checkForUpdates } = require('./utils/versionCheck');
+        await checkForUpdates();
+    }
 
     const configHandler = new ConfigHandler();
     await configHandler.initialize();
