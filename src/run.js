@@ -18,9 +18,28 @@ function isAiderInstalled() {
 
 async function main() {
     if (!isAiderInstalled()) {
-        console.error('Error: aider-chat is not installed.');
-        console.error('Please install it using: pip install aider-chat');
-        process.exit(1);
+        const { default: inquirer } = await import('inquirer');
+        const { install } = await inquirer.prompt({
+            type: 'confirm',
+            name: 'install',
+            message: 'aider-chat is not installed. Would you like to install it now?',
+            default: true
+        });
+
+        if (install) {
+            try {
+                const { execSync } = require('child_process');
+                console.log('Installing aider-chat...');
+                execSync('python -m pip install aider-install && aider-install', { stdio: 'inherit' });
+                console.log('aider-chat installed successfully!');
+            } catch (error) {
+                console.error('Failed to install aider-chat:', error);
+                process.exit(1);
+            }
+        } else {
+            console.log('You can install aider-chat manually using: python -m pip install aider-install && aider-install');
+            process.exit(1);
+        }
     }
 
     const argv = yargs(hideBin(process.argv))
