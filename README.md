@@ -35,7 +35,7 @@ puzzle
 
 ## Configuration
 
-Configuration file `puzzle.json` is located in root of your repository
+Configuration file `.puzzle.json` is located in root of your repository
 
 default config looks like this:
 

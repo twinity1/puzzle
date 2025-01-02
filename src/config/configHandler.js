@@ -11,7 +11,7 @@ class ConfigHandler {
     }
 
     async initialize() {
-        let userConfigPath = findFileInDirectoriesUp("puzzle.json");
+        let userConfigPath = findFileInDirectoriesUp(".puzzle.json");
         let userConfigData = {};
 
         // Ensure config exists before proceeding with initialization
@@ -19,7 +19,7 @@ class ConfigHandler {
             try {
                 // Get git repository root
                 const gitRoot = execSync('git rev-parse --show-toplevel', { encoding: 'utf-8' }).trim();
-                userConfigPath = path.join(gitRoot, 'puzzle.json');
+                userConfigPath = path.join(gitRoot, '.puzzle.json');
                 fs.writeFileSync(userConfigPath, JSON.stringify({}, null, 2));
                 userConfigData = this.defaultConfig;
             } catch (error) {
@@ -32,7 +32,7 @@ class ConfigHandler {
                 }]);
 
                 if (answer.createConfig) {
-                    userConfigPath = path.join(process.cwd(), 'puzzle.json');
+                    userConfigPath = path.join(process.cwd(), '.puzzle.json');
                     fs.writeFileSync(userConfigPath, JSON.stringify({}, null, 2));
                     userConfigData = this.defaultConfig;
                 } else {
