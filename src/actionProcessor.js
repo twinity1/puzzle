@@ -3,7 +3,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { scanVariablesInFilePath, updateFilePaths, simplifyPathWithVariable } = require('./modules/variableHandler');
 const { ask } = require('./llm/ask');
-const { getFilesFromSection, ensureDirectoryExists, getLineContinuation } = require('./fileUtils');
+const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards} = require('./fileUtils');
 const { isGitReadRequested, isGitWriteRequested } = require('./git');
 const { getAllModules } = require('./modules/moduleHandler');
 const { getWriteAndReadFilesFromTemplateFiles, resolveVarsAndUpdateFilePath } = require('./modules/fileHandler');
@@ -147,7 +147,8 @@ async function resolveAllVars(
     await promptVariables(varList, promptFnc, defaultVarList, allFiles);
 
     const updatedWriteFiles = updateFilePaths(allWriteFiles, varList);
-    const updatedReadFiles = updateFilePaths(allReadFiles, varList);
+    const updatedReadFiles = unfoldWildcards(updateFilePaths(allReadFiles, varList))
+        .filter(filePath => fs.existsSync(filePath));
 
     // keep the same array object
     allReadFiles.length = 0;
