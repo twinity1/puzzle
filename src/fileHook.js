@@ -10,10 +10,19 @@ function toggleFileInContext(filePath) {
 
     // Check if file exists in context to determine prefix
     const contextFilePath = process.argv[2];
+    const contextDir = path.dirname(contextFilePath);
+
+    // Convert absolute path to relative path based on context file's directory
+    if (path.isAbsolute(filePath)) {
+        filePath = path.relative(contextDir, filePath);
+    }
     // Create context file if it doesn't exist
     if (!fs.existsSync(contextFilePath)) {
         fs.writeFileSync(contextFilePath, '');
     }
+
+    filePath = filePath.replace('\\', '/');
+
     const contextContent = fs.readFileSync(contextFilePath, 'utf8');
 
     // Split into lines and filter empty ones
@@ -23,10 +32,6 @@ function toggleFileInContext(filePath) {
     const fileRecords = lines.filter(line => {
         const [, pathInRecord] = line.split(' ');
         return pathInRecord === filePath;
-    });
-    const otherRecords = lines.filter(line => {
-        const [, pathInRecord] = line.split(' ');
-        return pathInRecord !== filePath;
     });
 
     // Determine prefix based on last action (toggle between add/drop)
