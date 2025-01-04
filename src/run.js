@@ -21,6 +21,11 @@ async function main() {
                         'A "piece" represents a set of templates for code generation.\n' +
                         'It can be used for various purposes like endpoint creation, CRUD operations, test generation, etc.');
         })
+        .command('init', 'Initialize configuration only', (yargs) => {
+            return yargs
+                .usage('$0 init')
+                .describe('Creates and initializes configuration file without running the main application');
+        })
         .command('$0', 'Run the puzzle solver', (yargs) => {
             return yargs
                 .option('history', {
@@ -68,6 +73,11 @@ async function main() {
 
     const configHandler = new ConfigHandler();
     await configHandler.initialize();
+
+    // If init command, exit after config initialization
+    if (argv._[0] === 'init') {
+        return;
+    }
 
     const app = new App(configHandler);
     await app.run(argv);

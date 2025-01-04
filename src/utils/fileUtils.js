@@ -78,13 +78,6 @@ function ensureDirectoryExists(filePath) {
     fs.mkdirSync(dirPath, {recursive: true});
 }
 
-function writePromptToFile(scriptDir, prompt) {
-    const promptFilePath = path.join(scriptDir, 'prompt.txt');
-    fs.writeFileSync(promptFilePath, prompt);
-    return promptFilePath;
-}
-
-
 const findFileInDirectoriesUp = (fileName) => {
     let currentDir = process.cwd();
 
@@ -112,7 +105,6 @@ module.exports = {
     getFilesFromSection,
     unfoldWildcards,
     ensureDirectoryExists,
-    writePromptToFile,
     findFileInDirectoriesUp,
     getLineContinuation
 };

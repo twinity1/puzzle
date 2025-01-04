@@ -1,9 +1,12 @@
 {
   "name": "puzzle-ai",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "A flexible CLI tool for code generation and scaffolding that integrates with LLMs to automate common development tasks",
   "bin": {
-    "puzzle": "./src/run.js"
+    "puzzle": "./src/run.js",
+    "puzzle-jetbrains-install": "./src/jetbrainsHook.js",
+    "puzzle-aider": "./src/chat.sh",
+    "puzzle-context-follow": "src/chat.js"
   },
   "private": false,
   "license": "MIT",

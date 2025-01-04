@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { ensureDirectoryExists, getFilesFromSection} = require('../fileUtils');
+const { ensureDirectoryExists, getFilesFromSection} = require('../utils/fileUtils');
 const {scanVariablesInFilePath, updateFilePaths} = require("./variableHandler");
 
 function getWriteAndReadFilesFromTemplateFiles(repoPath, modules, varList) {

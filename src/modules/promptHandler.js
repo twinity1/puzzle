@@ -1,6 +1,3 @@
-const fs = require('fs');
-const { writePromptToFile } = require('../fileUtils');
-
 async function getAndProcessPrompt(modules, actionContext, puzzleDir) {
     let prompt = '';
 
@@ -25,7 +22,7 @@ async function getAndProcessPrompt(modules, actionContext, puzzleDir) {
         }
     }
 
-    return writePromptToFile(puzzleDir, prompt);
+    return prompt;
 }
 
 module.exports = {

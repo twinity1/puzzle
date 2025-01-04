@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { ensureDirectoryExists } = require('../fileUtils');
+const { ensureDirectoryExists } = require('../utils/fileUtils');
 const { ask, aider} = require('../llm/ask');
 
 const README_CONTENT = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');

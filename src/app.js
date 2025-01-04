@@ -1,7 +1,7 @@
 const fs = require('fs');
 const inquirer = require('inquirer');
-const { getActionList } = require('./fileUtils');
-const { getModifiedGitFiles, isGitReadRequested, isGitWriteRequested } = require('./git');
+const { getActionList } = require('./utils/fileUtils');
+const { getModifiedGitFiles, isGitReadRequested, isGitWriteRequested } = require('./utils/git');
 const { processAction } = require('./actionProcessor');
 const ConfigHandler = require('./config/configHandler');
 const HistoryHandler = require('./history/historyHandler');
@@ -117,7 +117,7 @@ class App {
 
             try {
                 const actionsSelected = await this.selectActions();
-                
+
                 for (const action of actionsSelected) {
                     await processAction(
                         action,

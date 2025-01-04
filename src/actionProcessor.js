@@ -3,8 +3,8 @@ const path = require('path');
 const { execSync } = require('child_process');
 const { scanVariablesInFilePath, updateFilePaths, simplifyPathWithVariable } = require('./modules/variableHandler');
 const { ask } = require('./llm/ask');
-const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards} = require('./fileUtils');
-const { isGitReadRequested, isGitWriteRequested } = require('./git');
+const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards} = require('./utils/fileUtils');
+const { isGitReadRequested, isGitWriteRequested } = require('./utils/git');
 const { getAllModules } = require('./modules/moduleHandler');
 const { getWriteAndReadFilesFromTemplateFiles, resolveVarsAndUpdateFilePath } = require('./modules/fileHandler');
 const { getAndProcessPrompt } = require('./modules/promptHandler');
@@ -81,7 +81,7 @@ async function processAction(
     // make sure new variables are also prompted
     await resolveAllVars(allTemplateFiles, allReadFiles, allWriteFiles, varList, inquirerPrompt, defaultVarList);
 
-    const promptFilePath = await getAndProcessPrompt(modules, actionContext, puzzleDir);
+    const prompt = await getAndProcessPrompt(modules, actionContext, puzzleDir);
 
     const finalReadFiles = [...new Set(allReadFiles)];
     const finalWriteFiles = [...new Set(allWriteFiles)];
@@ -119,16 +119,22 @@ async function processAction(
 
     let additionalAiderCmd = buildAiderCmdArgs(puzzleConfig.aiderArgs);
 
-    let aiderCmd;
     if (varList['CHAT'] === true) {
-        aiderCmd = `aider ${additionalAiderCmd}${filesLink}${lineContinuation} --read "${promptFilePath}"`;
-    } else {
-        aiderCmd = `aider ${additionalAiderCmd}${lineContinuation} --message-file ${promptFilePath}${filesLink}`;
-    }
-    console.log(`Executing command: ${aiderCmd}`);
-    execSync(aiderCmd, {stdio: 'inherit'});
+        const aiderCmd = `puzzle-aider ${additionalAiderCmd}${filesLink}`;
 
-    fs.unlinkSync(promptFilePath);
+        console.log(`Executing command: ${aiderCmd}`);
+        const input = prompt;
+
+        execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
+                    PROMPT: prompt,
+        }}});
+    } else {
+        const aiderCmd = `aider ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
+
+        execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
+                    AIDER_MESSAGE: prompt,
+                }}});
+    }
 }
 
 async function resolveAllVars(

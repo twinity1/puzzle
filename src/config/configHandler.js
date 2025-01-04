@@ -1,6 +1,6 @@
 const path = require('path');
 const fs = require('fs');
-const { findFileInDirectoriesUp } = require('../fileUtils');
+const { findFileInDirectoriesUp } = require('../utils/fileUtils');
 const { execSync } = require('child_process');
 const inquirer = require('inquirer');
 
