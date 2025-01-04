@@ -31,37 +31,55 @@ process.stdin.on('data', (key) => {
     process.stdout.write(key);
 });
 
+function handleFileChange(previousContent) {
+    try {
+        const content = fs.readFileSync(filePath, 'utf8');
+        if (content !== previousContent) {
+            const newContent = content.slice(previousContent.length);
+            const lines = newContent.split(/\r?\n/);
+
+            const currentBuffer = buffer.toString();
+
+            // Clear previous content by spamming backspace
+            process.stdout.write('\b'.repeat(currentBuffer.length));
+
+            for (const line of lines) {
+                process.stdout.write(line + "\n");
+            }
+
+            processPromptLines(currentBuffer);
+
+            return content; // Return new content to update previousContent
+        }
+    } catch (err) {
+        console.error(`Error reading file: ${err.message}`);
+        process.exit(1);
+    }
+    return previousContent;
+}
+
 function watchFile() {
     // Watch for changes
     let previousContent = fs.readFileSync(filePath, 'utf8');
-    fs.watch(filePath, (eventType, filename) => {
-        if (eventType === 'change') {
-            try {
-                const content = fs.readFileSync(filePath, 'utf8');
-                // Only print new content that wasn't in previous read
-                if (content !== previousContent) {
-                    const newContent = content.slice(previousContent.length);
-                    const lines = newContent.split(/\r?\n/);
 
-                    const currentBuffer = buffer.toString();
+    // Check if running in WSL
+    const isWsl = process.platform === 'linux' &&
+                 fs.existsSync('/proc/version') &&
+                 fs.readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft');
 
-                    // Clear previous content by spamming backspace
-                    process.stdout.write('\b'.repeat(currentBuffer.length)); // just in case
-
-                    for (const line of lines) {
-                        process.stdout.write(line + "\n");
-                    }
-
-                    processPromptLines(currentBuffer);
-
-                    previousContent = content;
-                }
-            } catch (err) {
-                console.error(`Error reading file: ${err.message}`);
-                process.exit(1);
+    if (isWsl) {
+        // Use interval-based polling for WSL
+        setInterval(() => {
+            previousContent = handleFileChange(previousContent);
+        }, 500); // Check every 500ms
+    } else {
+        // Use native fs.watch for non-WSL systems
+        fs.watch(filePath, (eventType, filename) => {
+            if (eventType === 'change') {
+                previousContent = handleFileChange(previousContent);
             }
-        }
-    });
+        });
+    }
 }
 
 // Handle termination signals
