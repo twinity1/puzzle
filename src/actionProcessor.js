@@ -1,7 +1,13 @@
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { scanVariablesInFilePath, updateFilePaths, simplifyPathWithVariable } = require('./modules/variableHandler');
+const { search } = require('@inquirer/prompts');
+const {
+    scanVariablesInFilePath,
+    updateFilePaths,
+    simplifyPathWithVariable,
+    getChoicesForVariable, promptVariables
+} = require('./modules/variableHandler');
 const { ask } = require('./llm/ask');
 const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards} = require('./utils/fileUtils');
 const { isGitReadRequested, isGitWriteRequested } = require('./utils/git');
@@ -23,6 +29,8 @@ async function processAction(
     varList['PIECE_NAME'] = action;
 
     const modules = await getAllModules(puzzleDir, action);
+    const piecePath = modules[1].dir;
+
     const allTemplateFiles = [];
     const allReadFiles = [];
     const allWriteFiles = [];
@@ -44,6 +52,7 @@ async function processAction(
 
     const actionContext = {
         vars: varList,
+        varListTypes: {},  // Store variable types
         ask: ask,
         inquirerPrompt: inquirerPrompt,
         readFiles: allReadFiles,
@@ -70,7 +79,7 @@ async function processAction(
     allWriteFiles.push(...resultWriteFiles);
     allReadFiles.push(...resultReadFiles);
 
-    await resolveAllVars(allTemplateFiles, allReadFiles, allWriteFiles, varList, inquirerPrompt, defaultVarList);
+    await resolveAllVars(allTemplateFiles, allReadFiles, allWriteFiles, varList, inquirerPrompt, defaultVarList, modules, actionContext.varListTypes, piecePath);
 
     for (const module of modules) {
         if (module.setup && module.setup.setup !== undefined) {
@@ -79,7 +88,7 @@ async function processAction(
     }
 
     // make sure new variables are also prompted
-    await resolveAllVars(allTemplateFiles, allReadFiles, allWriteFiles, varList, inquirerPrompt, defaultVarList);
+    await resolveAllVars(allTemplateFiles, allReadFiles, allWriteFiles, varList, inquirerPrompt, defaultVarList, modules, actionContext.varListTypes, piecePath);
 
     const prompt = await getAndProcessPrompt(modules, actionContext, puzzleDir);
 
@@ -144,13 +153,15 @@ async function resolveAllVars(
     varList,
     promptFnc,
     defaultVarList,
-    modules) {
+    modules,
+    varListTypes,
+    piecePath) {
     const allFiles = [...allTemplateFiles, ...allReadFiles, ...allWriteFiles];
     allFiles.forEach((filePath) => {
         scanVariablesInFilePath(filePath, varList);
     });
 
-    await promptVariables(varList, promptFnc, defaultVarList, allFiles);
+    await promptVariables(varList, promptFnc, defaultVarList, allFiles, varListTypes, piecePath);
 
     const updatedWriteFiles = updateFilePaths(allWriteFiles, varList);
     const updatedReadFiles = unfoldWildcards(updateFilePaths(allReadFiles, varList))
@@ -162,52 +173,6 @@ async function resolveAllVars(
 
     allReadFiles.push(...updatedReadFiles);
     allWriteFiles.push(...updatedWriteFiles);
-}
-
-async function promptVariables(varList, promptFnc, defaultVarList, allFiles) {
-    // Create a map of variables to their shallowest occurrence depth
-    const varDepths = {};
-    for (const key of Object.keys(varList)) {
-        const paths = allFiles.filter(file => file.includes(`{${key}}`));
-        if (paths.length > 0) {
-            // Find minimum depth based on variable position in path
-            varDepths[key] = Math.min(...paths.map(p => {
-                const parts = p.split(path.sep);
-                const varIndex = parts.findIndex(part => part.includes(`{${key}}`));
-                return varIndex; // Use the index position where variable appears
-            }));
-        } else {
-            varDepths[key] = Infinity; // Variables not found in any files go last
-        }
-    }
-
-    // Sort keys by depth first, then alphabetically
-    const sortedKeys = Object.keys(varList).sort((a, b) => {
-        const depthDiff = varDepths[a] - varDepths[b];
-        return depthDiff !== 0 ? depthDiff : a.localeCompare(b);
-    });
-
-    for (const key of sortedKeys) {
-        if (varList[key] === undefined) {
-            // Find first file containing this variable
-            const exampleFile = allFiles.find(file => file.includes(`{${key}}`));
-            const simplifiedPath = simplifyPathWithVariable(exampleFile, key);
-
-            const coloredKey = `\x1b[34m${key}\x1b[0m`;
-            const message = exampleFile
-                ? `Please provide a value for ${coloredKey} (used in ...${path.sep}${simplifiedPath}):`
-                : `Please provide a value for ${coloredKey}:`;
-
-            const promptRes = await promptFnc({
-                type: 'input',
-                name: key,
-                default: key in defaultVarList ? defaultVarList[key] : undefined,
-                message: message,
-            });
-
-            varList[key] = promptRes[key];
-        }
-    }
 }
 
 function buildAiderCmdArgs(aiderArgs) {

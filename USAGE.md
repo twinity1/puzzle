@@ -231,6 +231,40 @@ export async function prompt(context) {
 }
 ```
 
+#### Variable Types
+
+You can configure how variables are prompted by setting their type in `setup.mjs`. There are three types available:
+
+1. **search (default)** - Shows a searchable list of choices based on existing directories/files:
+```js
+context.varListTypes.ENTITY_NAME = {
+    type: 'search',
+    onlyDirs: true,  // Only show directories as choices (default false)
+};
+```
+
+2. **list** - Shows a fixed list of choices:
+```js
+context.varListTypes.SERVICE_NAME = {
+    type: 'list',
+    choices: [
+        'finance',
+        'stock',
+    ]
+};
+```
+
+3. **input** - Shows a simple text input field:
+```js
+context.varListTypes.CUSTOM_NAME = {
+    type: 'input'
+};
+```
+
+- The `onlyDirs` option (available for search type) will only show directories as choices when scanning the repository.
+- You can add those to common setup.js into `prepare` function
+
+
 ### Chat Mode
 
 When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
@@ -239,4 +273,4 @@ When you want to have a more interactive conversation with the LLM, you can enab
 puzzle --chat
 ```
 
-This allows for back-and-forth conversation with the AI.
+This allows for back-and-forth conversation in the aider chat.
