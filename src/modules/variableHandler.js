@@ -13,7 +13,7 @@ function scanVariablesInFilePath(path, varList) {
     }
 }
 
-function simplifyPathWithVariable(filePath, variableKey) {
+function simplifyPathWithVariable(filePath, variableKey, varList) {
     if (!filePath) return filePath;
 
     const parts = filePath.split(path.sep);
@@ -26,6 +26,13 @@ function simplifyPathWithVariable(filePath, variableKey) {
             // Color only the variable portion, keep the rest of segment gray
             const varPattern = new RegExp(`(\\{${variableKey}\\})`, 'g');
             return `\x1b[90m${part.replace(varPattern, '\x1b[34m$1\x1b[90m')}\x1b[0m`;
+        }
+        // Check for other variables from varList
+        for (const otherKey of Object.keys(varList)) {
+            if (varList[otherKey] !== undefined && part.includes(`{${otherKey}}`) && otherKey !== variableKey) {
+                const otherVarPattern = new RegExp(`\\{${otherKey}\\}`, 'g');
+                return `\x1b[90m${part.replace(otherVarPattern, `\x1b[38;5;130m${varList[otherKey]}\x1b[90m`)}\x1b[0m`;
+            }
         }
         return `\x1b[90m${part}\x1b[0m`; // Gray for path segments
     });
@@ -86,8 +93,8 @@ function getSortedVariableKeys(varList, varDepths) {
     });
 }
 
-function buildPromptMessage(key, exampleFile) {
-    const simplifiedPath = simplifyPathWithVariable(exampleFile, key);
+function buildPromptMessage(key, exampleFile, varList) {
+    const simplifiedPath = simplifyPathWithVariable(exampleFile, key, varList);
     const coloredKey = `\x1b[34m${key}\x1b[0m`;
     return exampleFile
         ? `Please provide a value for ${coloredKey} (used in ...${path.sep}${simplifiedPath}):`
@@ -129,7 +136,7 @@ async function handleSearchPrompt(promptConfig, choices, promptFnc) {
 
 async function promptForVariable(key, varList, defaultVarList, allFiles, varListTypes, piecePath, promptFnc) {
     const exampleFile = allFiles.find(file => file.includes(`{${key}}`));
-    const message = buildPromptMessage(key, exampleFile);
+    const message = buildPromptMessage(key, exampleFile, varList);
 
     let promptConfig = {
         name: key,
