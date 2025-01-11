@@ -7,8 +7,11 @@ const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
 
 async function main() {
+    // Check if running as puzzle-aider
+    const isAiderMode = process.argv[1].endsWith('puzzle-aider');
+
     const argv = yargs(hideBin(process.argv))
-        .scriptName('puzzle')
+        .scriptName(isAiderMode ? 'puzzle-aider' : 'puzzle')
         .usage('$0 [options]', 'Run the puzzle solver for code scaffolding')
         .option('no-update-check', {
             type: 'boolean',
@@ -66,13 +69,13 @@ async function main() {
 
     await checkAndInstallAider();
 
-    if (argv.updateCheck !== false) {
+    if (argv.updateCheck !== false && !isAiderMode) {
         const { checkForUpdates } = require('./utils/versionCheck');
         await checkForUpdates();
     }
 
     const configHandler = new ConfigHandler();
-    await configHandler.initialize();
+    await configHandler.initialize(argv);
 
     // If init command, exit after config initialization
     if (argv._[0] === 'init') {
@@ -80,6 +83,13 @@ async function main() {
     }
 
     const app = new App(configHandler);
+
+    if (isAiderMode) {
+        // Force chat mode and skip history for puzzle-aider
+        argv.chat = true;
+        argv.PIECE_NAME = 'virtual-chat';
+    }
+
     await app.run(argv);
 }
 

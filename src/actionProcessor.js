@@ -29,7 +29,9 @@ async function processAction(
     varList['PIECE_NAME'] = action;
 
     const modules = await getAllModules(puzzleDir, action);
-    const piecePath = modules[1].dir;
+    // Find the action module (non-common module)
+    const actionModule = modules.find(m => m.dir && !m.dir.endsWith('common'));
+    const piecePath = actionModule ? actionModule.dir : undefined;
 
     const allTemplateFiles = [];
     const allReadFiles = [];
@@ -129,16 +131,15 @@ async function processAction(
     let additionalAiderCmd = buildAiderCmdArgs(puzzleConfig.aiderArgs);
 
     if (varList['CHAT'] === true) {
-        const aiderCmd = `puzzle-aider ${additionalAiderCmd}${filesLink}`;
+        const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${filesLink}`;
 
         console.log(`Executing command: ${aiderCmd}`);
-        const input = prompt;
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
                     PROMPT: prompt,
         }}});
     } else {
-        const aiderCmd = `aider ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
+        const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
                     AIDER_MESSAGE: prompt,

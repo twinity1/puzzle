@@ -54,6 +54,11 @@ class App {
     }
 
     async selectActions() {
+        // Handle virtual chat piece
+        if (this.varList['PIECE_NAME'] === 'virtual-chat') {
+            return ['virtual-chat'];
+        }
+
         const actionDir = path.join(this.config.puzzleDir, 'pieces');
         const actionList = getActionList(actionDir);
 
@@ -115,22 +120,39 @@ class App {
                 delete this.varList['HISTORY'];
             }
 
-            try {
-                const actionsSelected = await this.selectActions();
+            let actionsSelected;
+            if (this.varList['PIECE_NAME'] === 'virtual-chat') {
+                actionsSelected = ['virtual-chat'];
+            } else {
+                actionsSelected = await this.selectActions();
+            }
 
                 for (const action of actionsSelected) {
-                    await processAction(
-                        action,
-                        this.varList,
-                        this.config.puzzleDir,
-                        process.cwd(),
-                        this.inquirerPrompt,
-                        this.defaultVarList,
-                        this.config,
-                        gitFiles
-                    );
-
-                    this.historyHandler.updateHistory(this.varList);
+                    if (action === 'virtual-chat') {
+                        // Skip history updates for virtual chat
+                        await processAction(
+                            action,
+                            this.varList,
+                            this.config.puzzleDir,
+                            process.cwd(),
+                            this.inquirerPrompt,
+                            this.defaultVarList,
+                            this.config,
+                            gitFiles
+                        );
+                    } else {
+                        await processAction(
+                            action,
+                            this.varList,
+                            this.config.puzzleDir,
+                            process.cwd(),
+                            this.inquirerPrompt,
+                            this.defaultVarList,
+                            this.config,
+                            gitFiles
+                        );
+                        this.historyHandler.updateHistory(this.varList);
+                    }
                 }
             } catch (error) {
                 // Save variables to history even if selection is interrupted
@@ -142,6 +164,5 @@ class App {
             process.exit(1);
         }
     }
-}
 
 module.exports = App;

@@ -33,12 +33,15 @@ async function addCommonModule(puzzleDir, modules) {
 async function addActionModule(puzzleDir, action, modules) {
     const actionsDir = path.join(puzzleDir, 'pieces');
     const actionDirPath = path.join(actionsDir, action);
-    const actionModuleSetup = await import(getImportPath(path.join(actionDirPath, 'setup.mjs')));
-
-    modules.push({
-        dir: actionDirPath,
-        setup: actionModuleSetup
-    });
+    const setupPath = path.join(actionDirPath, 'setup.mjs');
+    
+    if (fs.existsSync(setupPath)) {
+        const actionModuleSetup = await import(getImportPath(setupPath));
+        modules.push({
+            dir: actionDirPath,
+            setup: actionModuleSetup
+        });
+    }
 }
 
 module.exports = {

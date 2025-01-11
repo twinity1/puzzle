@@ -26,3 +26,5 @@ npm ERR!*
 # Jetbrains
 .idea
 .aider*
+
+.puzzle.history.json
