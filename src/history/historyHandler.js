@@ -33,7 +33,7 @@ class HistoryHandler {
                 for (const record of first10Records) {
                     for (const [key, value] of Object.entries(record)) {
                         // Only collect if the variable isn't already set
-                        if (key !== 'PIECE_NAME' && !(key in varList)) {
+                        if (key !== 'PIECE_NAME' && !(key in collectedVars)) {
                             collectedVars[key] = value;
                         }
                     }
