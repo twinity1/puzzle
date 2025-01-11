@@ -57,6 +57,7 @@ default config looks like this:
 - **History Tracking**: Use `--history` to view and reuse previous configurations
 - **Interactive Selection**: Choose actions through an interactive CLI interface
 - **Extensible Architecture**: Easy to add new templates and actions
+- **JetBrains IDE Integration**: [Add/remove files to Aider context directly from your IDE](JETBRAINS_INTEGRATION.md)
 
 ## License
 
