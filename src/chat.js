@@ -89,9 +89,13 @@ process.on('SIGINT', () => {
 
 function processPromptLines(promptContent) {
     const lines = promptContent.split(/\r?\n/);
-    for (const line of lines) {
-        process.stdout.write(line);
-        process.stdout.write('\x1b\x0d'); // Send Alt+Enter after each line
+    for (let i = 0; i < lines.length; i++) {
+        process.stdout.write(lines[i]);
+        
+        // Send Alt+Enter after each line except the last
+        if (i < lines.length - 1) {
+            process.stdout.write('\x1b\x0d');
+        }
     }
 }
 
