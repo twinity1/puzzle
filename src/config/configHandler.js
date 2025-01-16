@@ -18,7 +18,7 @@ class ConfigHandler {
         if (argv) {
             // Only allow specific aider args
             const allowedArgs = [
-                'model', 'opus', 'sonnet', 'haiku', '4', '4o', 'mini', '4-turbo', '35turbo', 
+                'model', 'opus', 'sonnet', 'haiku', '4', '4o', 'mini', '4-turbo', '35turbo',
                 'deepseek', 'o1-mini', 'o1-preview', 'openai-api-key', 'anthropic-api-key',
                 'openai-api-base', 'openai-api-type', 'openai-api-version', 'openai-api-deployment-id',
                 'openai-organization-id', 'set-env', 'api-key', 'list-models', 'model-settings-file',
@@ -93,13 +93,30 @@ class ConfigHandler {
             }
         }
 
-        this.config = { ...this.defaultConfig, ...userConfigData };
+        // Deep merge default config with user config
+        this.config = this.deepMerge(this.defaultConfig, userConfigData);
         this.config.repoPath = path.dirname(userConfigPath);
         this.config.puzzleDir = path.join(this.config.repoPath, this.config.puzzleDir);
     }
 
     getConfig() {
         return this.config;
+    }
+
+    deepMerge(target, source) {
+        const result = { ...target };
+        for (const key in source) {
+            if (source[key] instanceof Object && !Array.isArray(source[key])) {
+                if (key in target) {
+                    result[key] = this.deepMerge(target[key], source[key]);
+                } else {
+                    result[key] = { ...source[key] };
+                }
+            } else {
+                result[key] = source[key];
+            }
+        }
+        return result;
     }
 }
 
