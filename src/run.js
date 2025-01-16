@@ -2,6 +2,7 @@
 
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
+const { execSync } = require('child_process');
 const App = require('./app');
 const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
@@ -9,6 +10,15 @@ const { checkAndInstallAider } = require('./utils/aiderCheck');
 async function main() {
     // Check if running as puzzle-aider
     const isAiderMode = process.argv[1].endsWith('puzzle-aider');
+
+    // Show both helps if --help is requested
+    if (process.argv.includes('--help')) {
+        if (isAiderMode) {
+            console.log('\n=== PUZZLE-AIDER COMMAND (AI CHAT MODE) ===\n');
+            execSync('aider --help', { stdio: 'inherit' });
+            console.log('\n=== PUZZLE BASE COMMAND ===\n');
+        }
+    }
 
     const argv = yargs(hideBin(process.argv))
         .scriptName(isAiderMode ? 'puzzle-aider' : 'puzzle')
