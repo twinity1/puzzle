@@ -13,7 +13,7 @@ With well-designed templates, software development can become a **puzzle** made 
 
 ## Prerequisites
 
-- Node.js (exactly version 20)
+- Node.js (v20+)
 - aider-chat (`python -m pip install aider-install && aider-install`) [aider installation](https://aider.chat/docs/install.html)
 - git
 

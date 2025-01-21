@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const pty = require('node-pty');
+const pty = require('@lydell/node-pty');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
