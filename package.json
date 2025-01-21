@@ -39,7 +39,7 @@
     "fast-glob": "^3.3.2",
     "inquirer": "^12.1.0",
     "node": "^20.11.1",
-    "node-pty": "^1.0.0",
+    "@lydell/node-pty": "1.1.0",
     "yargs": "^17.7.2"
   }
 }
