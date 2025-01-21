@@ -1,35 +1,42 @@
 #!/usr/bin/env node
 
+const pty = require('node-pty');
+const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
 const filePath = path.join('.aider.context.txt');
 fs.writeFileSync(filePath, '');
 
-// Set stdin to raw mode for character-by-character input
-process.stdin.setRawMode(true);
-process.stdin.resume();
-process.stdin.setEncoding('utf8');
+const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
+const args = ['-c', `aider ${process.argv.slice(2).join(' ')}`];
 
-let buffer = '';
-
-// Handle each character as it comes in
-process.stdin.on('data', (key) => {
-    // Allow Ctrl+C to exit
-    if (key === '\u0003') {
-        process.exit();
-    }
-
-    // Reset buffer on newline
-    if (key === '\n' || key === '\r') {
-        buffer = '';
-    } else {
-        buffer += key;
-    }
-
-    // Write each character to stdout
-    process.stdout.write(key);
+const aider = pty.spawn(shell, args, {
+    name: 'xterm-256color',
+    cols: process.stdout.columns,
+    rows: process.stdout.rows,
+    cwd: process.cwd(),
+    env: {
+        ...process.env,
+        FORCE_COLOR: '3',
+        TERM: 'xterm-256color'
+    },
 });
+
+// Set up terminal I/O
+process.stdin.setRawMode(true);
+process.stdin.on('data', data => aider.write(data));
+
+
+function processPromptLines(promptContent) {
+    const lines = promptContent.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+        aider.write(lines[i]);
+    }
+}
+
+let lastOutputLines = 0;
+let buffer = '';
 
 function handleFileChange(previousContent) {
     try {
@@ -41,15 +48,19 @@ function handleFileChange(previousContent) {
             const currentBuffer = buffer.toString();
 
             // Clear previous content by spamming backspace
-            process.stdout.write('\b'.repeat(currentBuffer.length));
+            aider.write('\b'.repeat(currentBuffer.length));
 
+            // Output new content and send to Aider's stdin
             for (const line of lines) {
-                process.stdout.write(line + "\n");
+                if (line.trim()) {  // Only send non-empty lines
+                    aider.write(line + "\n");  // Write to Aider's stdin
+                }
             }
+            lastOutputLines = lines.length;
 
-            processPromptLines(currentBuffer);
+            processPromptLines(buffer);
 
-            return content; // Return new content to update previousContent
+            return content;
         }
     } catch (err) {
         console.error(`Error reading file: ${err.message}`);
@@ -59,22 +70,18 @@ function handleFileChange(previousContent) {
 }
 
 function watchFile() {
-    // Watch for changes
     let previousContent = fs.readFileSync(filePath, 'utf8');
 
-    // Check if running in WSL
     const isWsl = process.platform === 'linux' &&
                  fs.existsSync('/proc/version') &&
                  fs.readFileSync('/proc/version', 'utf8').toLowerCase().includes('microsoft');
 
     if (isWsl) {
-        // Use interval-based polling for WSL
         setInterval(() => {
             previousContent = handleFileChange(previousContent);
-        }, 500); // Check every 500ms
+        }, 500);
     } else {
-        // Use native fs.watch for non-WSL systems
-        fs.watch(filePath, (eventType, filename) => {
+        fs.watch(filePath, (eventType) => {
             if (eventType === 'change') {
                 previousContent = handleFileChange(previousContent);
             }
@@ -82,34 +89,88 @@ function watchFile() {
     }
 }
 
-// Handle termination signals
-process.on('SIGINT', () => {
-    process.exit(0);
+let lastOutput = Date.now();
+
+// Handle aider output with file watching
+aider.onData(data => {
+    process.stdout.write(data);
+
+    lastOutput = Date.now();
 });
 
-function processPromptLines(promptContent) {
-    const lines = promptContent.split(/\r?\n/);
-    for (let i = 0; i < lines.length; i++) {
-        process.stdout.write(lines[i]);
-        
-        // Send Alt+Enter after each line except the last
-        if (i < lines.length - 1) {
-            process.stdout.write('\x1b\x0d');
+let isProcessingInput = false;
+
+// Handle parent process stdin
+process.stdin.on('data', data => {
+    // Add to buffer
+    buffer += data.toString();
+    // If last character is carriage return, process the complete line
+    if (data.toString().endsWith('\r') || data.toString().trim().endsWith("\u001b[10;1R")) {
+        if (!isProcessingInput) {
+            isProcessingInput = true;
+
+            // Write the complete line to aider
+            // aider.write(buffer);
+
+            // Clear buffer
+            buffer = '';
+
+            isProcessingInput = false;
         }
     }
+});
+
+// Handle aider process exit
+aider.onExit(({ exitCode, signal }) => {
+    if (exitCode !== undefined) {
+        process.exit(exitCode);
+    } else if (signal) {
+        process.kill(process.pid, signal);
+    } else {
+        process.exit(0);
+    }
+});
+
+// Handle termination
+function shutdown() {
+    process.stdin.setRawMode(false);
+    aider.kill();
+}
+
+process.on('SIGINT', () => shutdown());
+process.on('SIGHUP', () => shutdown());
+process.on('exit', () => shutdown());
+
+// Window resize handling
+process.stdout.on('resize', () => {
+    aider.resize(process.stdout.columns, process.stdout.rows);
+});
+
+
+let promptHandled = false;
+
+// Handle initial prompt if provided
+function checkPrompt() {
+    setTimeout(() => {
+        if (Date.now() - lastOutput > 700) {
+            promptHandled = true;
+            processPromptLines(buffer);
+        } else {
+            checkPrompt();
+        }
+    }, 200);
 }
 
 try {
-    // Read content from stdin as string
     const promptContent = process.env.PROMPT;
-
     if (promptContent) {
         buffer = promptContent;
-        processPromptLines(promptContent);
+        checkPrompt();
+    } else {
+        promptHandled = true;
     }
 } catch (err) {
     console.error(`Error reading prompt file: ${err.message}`);
 }
 
 watchFile();
-
