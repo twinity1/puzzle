@@ -181,6 +181,10 @@ function buildAiderCmdArgs(aiderArgs) {
     const lineContinuation = getLineContinuation();
 
     for (let key in aiderArgs) {
+        if (!aiderArgs[key]) {
+            continue;
+        }
+
         if (aiderArgs[key] === true) {
             additionalAiderCmd += `${lineContinuation} --${key}`;
         } else {
