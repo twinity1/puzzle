@@ -8,8 +8,10 @@ const path = require('path');
 const filePath = path.join('.aider.context.txt');
 fs.writeFileSync(filePath, '');
 
-const shell = os.platform() === 'win32' ? 'cmd.exe' : 'bash';
-const args = ['-c', `aider ${process.argv.slice(2).join(' ')}`];
+const isWindows = os.platform() === 'win32';
+const shell = isWindows ? 'cmd.exe' : 'bash';
+const shellCommandArg = isWindows ? '/c' : '-c';
+const args = [shellCommandArg, `aider ${process.argv.slice(2).join(' ')}`];
 
 const aider = pty.spawn(shell, args, {
     name: 'xterm-256color',
@@ -32,6 +34,10 @@ function processPromptLines(promptContent) {
     const lines = promptContent.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
         aider.write(lines[i]);
+
+        if (lines.length !== i + 1) {
+            aider.write('\x1b\x0d');
+        }
     }
 }
 
@@ -58,7 +64,10 @@ function handleFileChange(previousContent) {
             }
             lastOutputLines = lines.length;
 
-            processPromptLines(buffer);
+            // write it in a next buffer batch
+            setTimeout(() => {
+                processPromptLines(buffer);
+            }, 100);
 
             return content;
         }
@@ -109,9 +118,6 @@ process.stdin.on('data', data => {
         if (!isProcessingInput) {
             isProcessingInput = true;
 
-            // Write the complete line to aider
-            // aider.write(buffer);
-
             // Clear buffer
             buffer = '';
 
@@ -152,17 +158,17 @@ let promptHandled = false;
 // Handle initial prompt if provided
 function checkPrompt() {
     setTimeout(() => {
-        if (Date.now() - lastOutput > 700) {
+        if (Date.now() - lastOutput > 2000) {
             promptHandled = true;
             processPromptLines(buffer);
         } else {
             checkPrompt();
         }
-    }, 200);
+    }, 500);
 }
 
 try {
-    const promptContent = process.env.PROMPT;
+    const promptContent = process.env.PUZZLE_PROMPT;
     if (promptContent) {
         buffer = promptContent;
         checkPrompt();

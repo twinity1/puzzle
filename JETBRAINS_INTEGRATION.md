@@ -13,7 +13,7 @@ The Puzzle CLI tool provides seamless integration with JetBrains IDEs (IntelliJ 
 
 **Platform Support**: This integration currently works on:
 - MacOS
-- Windows (WSL only)
+- Windows
 - Linux
 
 1. Run the installation command:

@@ -8,9 +8,10 @@ const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
 
 async function main() {
-    // Check if running as puzzle-aider
-    const isAiderMode = process.argv[1].endsWith('puzzle-aider');
-
+    // Check if running as puzzle-aider by checking for wrapper file
+    const isAiderMode = process.argv[1].endsWith('puzzle-aider') || 
+                        process.argv[1].endsWith('puzzleAider.js');
+    
     // Show both helps if --help is requested
     if (process.argv.includes('--help')) {
         if (isAiderMode) {

@@ -53,23 +53,23 @@ async function suggestJetBrainsPath() {
         }
     }
 
-    // Sort IDE choices by version (newest first) and then by name
-    ideChoices.sort((a, b) => {
-        const [aName, aVersion] = a.name.match(/^([A-Za-z]+)(\d{4}\.\d+)$/).slice(1);
-        const [bName, bVersion] = b.name.match(/^([A-Za-z]+)(\d{4}\.\d+)$/).slice(1);
-
-        // Compare versions first
-        if (bVersion !== aVersion) {
-            return bVersion.localeCompare(aVersion);
+    // Create a map to group by IDE name (without version)
+    const ideMap = new Map();
+    for (const choice of ideChoices) {
+        const ideName = choice.name.replace(/\d{4}\.\d+$/, '');
+        if (!ideMap.has(ideName)) {
+            ideMap.set(ideName, []);
         }
-        // If versions are equal, compare names
-        return aName.localeCompare(bName);
-    });
+        ideMap.get(ideName).push(choice.value);
+    }
 
-    const choices = [
-        ...ideChoices,
-        { name: 'Enter custom path...', value: 'custom' }
-    ];
+    // Create choices with combined paths for duplicates
+    const choices = Array.from(ideMap.entries()).map(([name, paths]) => ({
+        name: paths.length > 1 ? `${name} (${paths.length} versions)` : name,
+        value: paths
+    }));
+
+    choices.push({ name: 'Enter custom path...', value: 'custom' });
 
     const { selectedPath } = await inquirer([{
         type: 'list',
@@ -84,10 +84,11 @@ async function suggestJetBrainsPath() {
             name: 'customPath',
             message: 'Enter custom JetBrains config path:'
         }]);
-        return customPath;
+        return [customPath];
     }
 
-    return selectedPath;
+    // Return array of paths even if single path
+    return Array.isArray(selectedPath) ? selectedPath : [selectedPath];
 }
 
 
@@ -141,14 +142,7 @@ function createJetBrainsToolConfig(idePath, scriptPath) {
 
     // Write configuration
     fs.writeFileSync(configPath, xmlContent);
-
-    console.log(`${colors.success}✅  External tool successfully installed! ${configPath}${colors.reset}`);
-    console.log(`${colors.warn}❗️🔄  Please restart your JetBrains IDE for the changes to take effect.${colors.reset}`);
-    console.log(`${colors.info}💡  You can run this action from:${colors.reset}`);
-    console.log(`${colors.info}   - Right-click menu in the Project/Editor${colors.reset}`);
-    console.log(`${colors.info}   - Tools > External Tools menu${colors.reset}`);
-    console.log(`${colors.info}   - Or bind it to a keyboard shortcut in Preferences > Keymap${colors.reset}`);
-    console.log(`${colors.info}     Search for "Add/Drop file in Aider context" to set up your shortcut${colors.reset}`);
+    return configPath;
 }
 
 function replaceTool(xmlContent, toolNameToReplace, newToolContent) {
@@ -177,9 +171,27 @@ function replaceTool(xmlContent, toolNameToReplace, newToolContent) {
 
 async function main() {
     try {
-        const idePath = await suggestJetBrainsPath();
+        const idePaths = await suggestJetBrainsPath();
         const scriptPath = path.join(__dirname, 'fileHook.js');
-        createJetBrainsToolConfig(idePath, scriptPath);
+        
+        // Create config for all selected paths and collect installed paths
+        const installedPaths = [];
+        for (const idePath of idePaths) {
+            const configPath = createJetBrainsToolConfig(idePath, scriptPath);
+            installedPaths.push(configPath);
+        }
+
+        // Show consolidated success message
+        console.log(`${colors.success}✅  External tool successfully installed in:${colors.reset}`);
+        installedPaths.forEach(path => {
+            console.log(`${colors.success}   ${path}${colors.reset}`);
+        });
+        console.log(`${colors.warn}❗️🔄  Please restart your JetBrains IDE for the changes to take effect.${colors.reset}`);
+        console.log(`${colors.info}💡  You can run this action from:${colors.reset}`);
+        console.log(`${colors.info}   - Right-click menu in the Project/Editor${colors.reset}`);
+        console.log(`${colors.info}   - Tools > External Tools menu${colors.reset}`);
+        console.log(`${colors.info}   - Or bind it to a keyboard shortcut in Preferences > Keymap${colors.reset}`);
+        console.log(`${colors.info}     Search for "Add/Drop file in Aider context" to set up your shortcut${colors.reset}`);
     } catch (err) {
         console.error(`${colors.error}❌  Error: ${err.message}${colors.reset}`);
         process.exit(1);

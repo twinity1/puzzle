@@ -136,7 +136,7 @@ async function processAction(
         console.log(`Executing command: ${aiderCmd}`);
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
-                    PROMPT: prompt,
+                    PUZZLE_PROMPT: prompt,
         }}});
     } else {
         const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
