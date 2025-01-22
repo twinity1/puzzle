@@ -181,7 +181,7 @@ function buildAiderCmdArgs(aiderArgs) {
     const lineContinuation = getLineContinuation();
 
     for (let key in aiderArgs) {
-        if (!aiderArgs[key]) {
+        if (aiderArgs[key] === undefined || aiderArgs[key] === null) {
             continue;
         }
 
