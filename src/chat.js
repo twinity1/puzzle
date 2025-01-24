@@ -30,6 +30,8 @@ process.stdin.setRawMode(true);
 process.stdin.on('data', data => aider.write(data));
 
 
+let promptCheckSatisfied = false;
+
 function processPromptLines(promptContent) {
     const lines = promptContent.split(/\r?\n/);
     for (let i = 0; i < lines.length; i++) {
@@ -65,9 +67,7 @@ function handleFileChange(previousContent) {
             lastOutputLines = lines.length;
 
             // write it in a next buffer batch
-            setTimeout(() => {
-                processPromptLines(buffer);
-            }, 100);
+            checkPrompt(1000);
 
             return content;
         }
@@ -152,17 +152,14 @@ process.stdout.on('resize', () => {
     aider.resize(process.stdout.columns, process.stdout.rows);
 });
 
-
-let promptHandled = false;
-
 // Handle initial prompt if provided
-function checkPrompt() {
+function checkPrompt(time = 2000) {
     setTimeout(() => {
-        if (Date.now() - lastOutput > 2000) {
-            promptHandled = true;
+        if (Date.now() - lastOutput > time) {
+            promptCheckSatisfied = true;
             processPromptLines(buffer);
         } else {
-            checkPrompt();
+            checkPrompt(time);
         }
     }, 500);
 }
@@ -173,7 +170,7 @@ try {
         buffer = promptContent;
         checkPrompt();
     } else {
-        promptHandled = true;
+        promptCheckSatisfied = true;
     }
 } catch (err) {
     console.error(`Error reading prompt file: ${err.message}`);
