@@ -31,6 +31,7 @@ process.stdin.on('data', data => aider.write(data));
 
 
 let promptCheckSatisfied = false;
+let carretDetected = false;
 
 function processPromptLines(promptContent) {
     const lines = promptContent.split(/\r?\n/);
@@ -48,6 +49,8 @@ let buffer = '';
 
 function handleFileChange(previousContent) {
     try {
+        lastOutput = Date.now();
+
         const content = fs.readFileSync(filePath, 'utf8');
         if (content !== previousContent) {
             const newContent = content.slice(previousContent.length);
@@ -55,8 +58,11 @@ function handleFileChange(previousContent) {
 
             const currentBuffer = buffer.toString();
 
+            // Move cursor to the right and down before backspacing
+            aider.write('\x1b[B\x1b[C'.repeat(currentBuffer.length));
+
             // Clear previous content by spamming backspace
-            aider.write('\b'.repeat(currentBuffer.length));
+            aider.write('\b'.repeat(currentBuffer.length + currentBuffer.split("\n").length + 1)); // aider adds '.' to start of each line, count that in too
 
             // Output new content and send to Aider's stdin
             for (const line of lines) {
@@ -67,7 +73,7 @@ function handleFileChange(previousContent) {
             lastOutputLines = lines.length;
 
             // write it in a next buffer batch
-            checkPrompt(1000);
+            checkPrompt(100);
 
             return content;
         }
@@ -104,7 +110,13 @@ let lastOutput = Date.now();
 aider.onData(data => {
     process.stdout.write(data);
 
+    fs.appendFileSync('.aider.out.log', data);
+
     lastOutput = Date.now();
+
+    if (carretDetected === false) {
+        carretDetected = data.toString().includes('40m>  [0m'); // aider is ready, file was added etc.
+    }
 });
 
 let isProcessingInput = false;
@@ -113,6 +125,7 @@ let isProcessingInput = false;
 process.stdin.on('data', data => {
     // Add to buffer
     buffer += data.toString();
+
     // If last character is carriage return, process the complete line
     if (data.toString().endsWith('\r') || data.toString().trim().endsWith("\u001b[10;1R")) {
         if (!isProcessingInput) {
@@ -153,15 +166,17 @@ process.stdout.on('resize', () => {
 });
 
 // Handle initial prompt if provided
-function checkPrompt(time = 2000) {
+function checkPrompt(time = 100) {
+    promptCheckSatisfied = false;
     setTimeout(() => {
-        if (Date.now() - lastOutput > time) {
+        if (carretDetected) {
             promptCheckSatisfied = true;
+            carretDetected = false;
             processPromptLines(buffer);
         } else {
             checkPrompt(time);
         }
-    }, 500);
+    }, 100);
 }
 
 try {
