@@ -31,7 +31,7 @@ process.stdin.on('data', data => aider.write(data));
 
 
 let promptCheckSatisfied = false;
-let carretDetected = false;
+let isAiderReady = false;
 
 function processPromptLines(promptContent) {
     const lines = promptContent.split(/\r?\n/);
@@ -110,12 +110,12 @@ let lastOutput = Date.now();
 aider.onData(data => {
     process.stdout.write(data);
 
-    fs.appendFileSync('.aider.out.log', data);
+    // fs.appendFileSync('.aider.out.log', data);
 
     lastOutput = Date.now();
 
-    if (carretDetected === false) {
-        carretDetected = data.toString().includes('40m>  [0m'); // aider is ready, file was added etc.
+    if (isAiderReady === false) {
+        isAiderReady = data.toString().includes('40m>  [0m'); // aider is ready, file was added etc.
     }
 });
 
@@ -169,9 +169,9 @@ process.stdout.on('resize', () => {
 function checkPrompt(time = 100) {
     promptCheckSatisfied = false;
     setTimeout(() => {
-        if (carretDetected) {
+        if (isAiderReady) {
             promptCheckSatisfied = true;
-            carretDetected = false;
+            isAiderReady = false;
             processPromptLines(buffer);
         } else {
             checkPrompt(time);
