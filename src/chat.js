@@ -4,8 +4,17 @@ const pty = require('@lydell/node-pty');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
+const {findFileInDirectoriesUp} = require("./utils/fileUtils");
 
-const filePath = path.join('.aider.context.txt');
+const puzzleFile = findFileInDirectoriesUp('.puzzle.json');
+
+if (!puzzleFile) {
+    console.error('No .puzzle.json file found in the current directory or any parent directory.');
+    console.error('Run \'puzzle init\' command in root of your repository')
+    process.exit(1);
+}
+
+const filePath = path.join(path.dirname(puzzleFile), '.aider.context.txt');
 fs.writeFileSync(filePath, '');
 
 const isWindows = os.platform() === 'win32';
