@@ -65,8 +65,6 @@ class HistoryHandler {
     }
 
     async checkAndUpdateGitignore() {
-        console.log(this.gitignorePath);
-
         // Check if .gitignore exists
         if (!fs.existsSync(this.gitignorePath)) {
             const {createGitignore} = await this.inquirerPrompt({
