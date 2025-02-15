@@ -65,6 +65,25 @@ For example you can set model like this:
 }
 ```
 
+## Commands and Parameters
+
+| Command | Aliases | Description                                                                          |
+|---|---|--------------------------------------------------------------------------------------|
+| `puzzle` |  | Runs the tool for scaffolding.                                                       |
+| `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template.                |
+| `puzzle init` |  | Creates and initializes the configuration file without running the main application. |
+| `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
+
+### `puzzle` command parameters
+
+| Parameter | Aliases | Description |
+|---|---|---|
+| `--chat` |  | Enables aider chat mode for interactive conversations with the LLM. |
+| `--history` | `-H` | Uses command history to re-run previous actions. Shows last 10 runs and allows reusing variables. |
+| `--no-update-check` |  | Skips version and dependency update checks. |
+| `--help` | `-h` | Shows help information. |
+| `--version` | `-v` | Shows the version number. |
+
 ### Features
 
 - **Template-based Code Generation**: Create and use templates for repetitive coding tasks

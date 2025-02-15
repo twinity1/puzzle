@@ -23,7 +23,7 @@ async function main() {
 
     const argv = yargs(hideBin(process.argv))
         .scriptName(isAiderMode ? 'puzzle-aider' : 'puzzle')
-        .usage('$0 [options]', 'Run the puzzle solver for code scaffolding')
+        .usage('$0 [options]', 'Run the tool for code scaffolding')
         .option('no-update-check', {
             type: 'boolean',
             description: 'Skip version and dependency update checks'
@@ -40,7 +40,7 @@ async function main() {
                 .usage('$0 init')
                 .describe('Creates and initializes configuration file without running the main application');
         })
-        .command('$0', 'Run the puzzle solver', (yargs) => {
+        .command('$0', 'Run the tool for scaffolding', (yargs) => {
             return yargs
                 .option('history', {
                     alias: 'H',

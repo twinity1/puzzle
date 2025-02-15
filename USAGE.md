@@ -29,9 +29,11 @@ For a detailed explanation of the piece structure, please refer to the following
 repo/
 └── puzzle/
     ├── pieces/           # Action/scaffolding templates
-    │   └── YOUR_PIECE/
+    │   └── YOUR_PIECE/ 
     │       ├── template/
-    │       │   └── your template files with the structure of repo 
+    │       │   └── your template files with the structure of repo
+    │       ├── extra/
+    │       │   └── your extra files - useful for conventions 
     │       └── setup.mjs # Configuration file that contains prompt
 ```
 
@@ -131,52 +133,7 @@ TIP: The `context.vars` object contains variables populated during scaffolding. 
 3. Provide values for all required variables
 4. The configured `aider` command will execute, generating code based on your file structure and prompt
 
-
 ## Tips
-
-### Chat Mode
-
-When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
-
-```bash
-puzzle --chat
-```
-
-This allows for back-and-forth conversation in the aider chat.
-
-Before submitting your prompt to the LLM, you can add more files to the context using the JetBrains IDE integration:
-- Right-click a file and select "Add/Drop file in Aider context"
-- Or use your configured keyboard shortcut
-
-For setup instructions, see [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
-
-### Dynamic Prompt Extension
-
-You can dynamically extend prompts using the [inquirer.js](https://www.npmjs.com/package/inquirer) library, which handles command-line user interactions.
-
-Here's how to extend a prompt:
-
-```js
-
-export async function prompt(context) {
-    const {userPrompt} = await context.inquirerPrompt({
-        type: 'input', // or 'editor' for multi line
-        name: 'userPrompt',
-        message: `Enter custom instructions:`,
-    });
-
-    return {
-        prompt: `Implement the operation: ${context.vars['PIECE_NAME']} for entity ${context.vars['ENTITY_NAME']} in module ${context.vars['MODULE_NAME']}.
-    Add endpoint to the controller from the example. Be precise to example files as you can.
-    
-    Extra requirements:
-    ${userPrompt}
-    `
-    };
-}
-```
-
-This approach prompts users to provide additional implementation requirements, such as specific validation rules or endpoint return values.
 
 ### Providing Additional Context
 
@@ -201,16 +158,21 @@ export async function prompt(context) {
 }
 ```
 
-### History
+### Chat Mode
 
-You can re-run last 10 piece runs.
+When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
 
-- Simply run puzzle with `--history` argument and select an action you want to rerun
-- In combination with custom user prompt you can iterate on the generated code
-- Or you can run different piece with common variables (e.g. ENTITY_NAME) will be automatically filled
+```bash
+puzzle --chat
+```
 
-command: `puzzle --history`
+This allows for back-and-forth conversation in the aider chat.
 
+Before submitting your prompt to the LLM, you can add more files to the context using the JetBrains IDE integration:
+- Right-click a file and select "Add/Drop file in Aider context"
+- Or use your configured keyboard shortcut
+
+For setup instructions, see [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
 
 ### Shared Configuration
 
@@ -221,7 +183,6 @@ puzzle/
 ├── pieces/           # Action templates
 ├── common/
 │   ├── extra/       # Shared resources
-│   ├── template/    # Common templates
 │   └── setup.mjs    # Common setup logic
 ```
 
@@ -230,6 +191,17 @@ puzzle/
 - The `extra` folder can contain additional reference files
   - These files are automatically included in all scaffolding actions
   - For example, `extra/conventions.txt` can store your codebase conventions
+
+### History
+
+You can re-run last 10 piece runs.
+
+- Simply run puzzle with `--history` argument and select an action you want to rerun
+- In combination with custom user prompt you can iterate on the generated code
+- Or you can run different piece with common variables (e.g. ENTITY_NAME) will be automatically filled
+
+command: `puzzle --history`
+
 
 ### Custom variables
 
