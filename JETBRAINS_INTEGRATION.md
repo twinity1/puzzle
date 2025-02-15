@@ -2,6 +2,12 @@
 
 The Puzzle CLI tool provides seamless integration with JetBrains IDEs (IntelliJ IDEA, WebStorm, PyCharm, etc.) through an external tool configuration. This allows you to quickly add/remove files from the Aider context directly from your IDE.
 
+
+
+https://github.com/user-attachments/assets/19590216-9a94-429b-a769-d617dcad566d
+
+
+
 ## Features
 
 - Add/remove files to Aider context with a single click
