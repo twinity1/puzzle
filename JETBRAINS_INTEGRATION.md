@@ -33,14 +33,14 @@ Once installed, you can access the tool in several ways:
 
 1. **Right-click Menu**:
    - Right-click any file in the Project or Editor view
-   - Select "External Tools" > "Add/Drop file in Aider context"
+   - Select "External Tools" > "Add/Drop file to Aider context"
 
 2. **Main Menu**:
-   - Go to Tools > External Tools > Add/Drop file in Aider context
+   - Go to Tools > External Tools > Add/Drop file to Aider context
 
 3. **Keyboard Shortcut** (recommended):
    - Go to Preferences > Keymap
-   - Search for "Add/Drop file in Aider context"
+   - Search for "Add/Drop file to Aider context"
    - Assign your preferred shortcut (e.g. Ctrl+Alt+A)
 
 ## How It Works

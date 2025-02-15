@@ -95,7 +95,7 @@ async function suggestJetBrainsPath() {
 function createJetBrainsToolConfig(idePath, scriptPath) {
     // Create the external tool configuration
     const config = {
-        name: "Add/Drop file in Aider context",
+        name: "Add/Drop file to Aider context",
         description: "Toggles file in context",
         group: "File Context",
         program: process.execPath, // Node.js executable
@@ -191,7 +191,7 @@ async function main() {
         console.log(`${colors.info}   - Right-click menu in the Project/Editor${colors.reset}`);
         console.log(`${colors.info}   - Tools > External Tools menu${colors.reset}`);
         console.log(`${colors.info}   - Or bind it to a keyboard shortcut in Preferences > Keymap${colors.reset}`);
-        console.log(`${colors.info}     Search for "Add/Drop file in Aider context" to set up your shortcut${colors.reset}`);
+        console.log(`${colors.info}     Search for "Add/Drop file to Aider context" to set up your shortcut${colors.reset}`);
     } catch (err) {
         console.error(`${colors.error}❌  Error: ${err.message}${colors.reset}`);
         process.exit(1);
