@@ -1,6 +1,6 @@
 # Puzzle 🧩 - AI powered scaffolding
 
-![Puzzle showcase](assets/puzzle-demo.webm "Creating POST, PUT, GET endpoints using Puzzle")
+![Puzzle showcase](assets/puzzle-demo.svg "Creating GET, DELETE endpoints using Puzzle")
 
 A flexible CLI tool for code generation and scaffolding that integrates with [aider-chat](https://aider.chat) to help automate common development tasks.
 
