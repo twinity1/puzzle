@@ -134,6 +134,22 @@ TIP: The `context.vars` object contains variables populated during scaffolding. 
 
 ## Tips
 
+### Chat Mode
+
+When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
+
+```bash
+puzzle --chat
+```
+
+This allows for back-and-forth conversation in the aider chat.
+
+Before submitting your prompt to the LLM, you can add more files to the context using the JetBrains IDE integration:
+- Right-click a file and select "Add/Drop file in Aider context"
+- Or use your configured keyboard shortcut
+
+For setup instructions, see [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
+
 ### Dynamic Prompt Extension
 
 You can dynamically extend prompts using the [inquirer.js](https://www.npmjs.com/package/inquirer) library, which handles command-line user interactions.
@@ -263,14 +279,3 @@ context.varListTypes.CUSTOM_NAME = {
 
 - The `onlyDirs` option (available for search type) will only show directories as choices when scanning the repository.
 - You can add those to common setup.js into `prepare` function
-
-
-### Chat Mode
-
-When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
-
-```bash
-puzzle --chat
-```
-
-This allows for back-and-forth conversation in the aider chat.

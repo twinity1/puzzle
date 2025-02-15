@@ -1,4 +1,6 @@
-# Puzzle 🧩
+# Puzzle 🧩 - AI powered scaffolding
+
+![Puzzle showcase](assets/puzzle-demo.webm "Creating POST, PUT, GET endpoints using Puzzle")
 
 A flexible CLI tool for code generation and scaffolding that integrates with [aider-chat](https://aider.chat) to help automate common development tasks.
 
@@ -7,7 +9,6 @@ A flexible CLI tool for code generation and scaffolding that integrates with [ai
 Large Language Models (LLMs) are powerful tools for code generation, but they require proper context to be effective. Without clear examples and relevant files, LLMs often make incorrect assumptions, leading to extensive code rewrites. 
 
 This tool solves these challenges by providing a structured framework for creating templates for common development tasks like endpoint generation, test creation, CRUD generation, documentation, etc..
-
 
 With well-designed templates, software development can become a **puzzle** made up of individual **pieces**.
 
@@ -32,6 +33,8 @@ puzzle
 ## Usage
 
 [Follow this guide how to create your first template and start scaffolding](USAGE.md)
+
+or Check out the [example project](puzzle-example-project) for a complete demonstration of puzzle templates and usage.
 
 ## Configuration
 

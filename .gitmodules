@@ -1,0 +1,3 @@
+[submodule "puzzle-example-project"]
+	path = puzzle-example-project
+	url = https://github.com/twinity1/puzzle-example-project

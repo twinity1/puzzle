@@ -25,7 +25,8 @@ async function processAction(
     puzzleConfig,
     modifiedGitFiles
     ) {
-    console.log(`Performing action: ${action}`);
+    printAction(action);
+    
     varList['PIECE_NAME'] = action;
 
     const modules = await getAllModules(puzzleDir, action);
@@ -145,6 +146,16 @@ async function processAction(
                     AIDER_MESSAGE: prompt,
                 }}});
     }
+}
+
+function printAction(action) {
+    const baseText = `🎯 Performing action: ${action}`;
+    const width = baseText.length + 2; // Add 2 for padding
+    const border = '═'.repeat(width);
+
+    console.log(`\x1b[35m╔${border}╗\x1b[0m`);
+    console.log(`\x1b[35m║\x1b[0m 🎯 Performing action: \x1b[36m${action}\x1b[0m \x1b[35m║\x1b[0m`);
+    console.log(`\x1b[35m╚${border}╝\x1b[0m`);
 }
 
 async function resolveAllVars(
