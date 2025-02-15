@@ -34,7 +34,7 @@ puzzle
 
 [Follow this guide how to create your first template and start scaffolding](USAGE.md)
 
-or Check out the [example project](puzzle-example-project) for a complete demonstration of puzzle templates and usage.
+or check out the [example project](https://github.com/twinity1/puzzle-example-project) for a complete demonstration of puzzle templates and usage.
 
 ## Configuration
 
@@ -53,6 +53,17 @@ default config looks like this:
 ```
 
 `aiderArgs` will be passed to `aider` command, check `aider --help` for more
+
+
+For example you can set model like this:
+
+```json
+{
+   "aiderArgs": {
+      "model": "openrouter/anthropic/claude-3.5-sonnet",
+   }
+}
+```
 
 ### Features
 
