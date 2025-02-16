@@ -196,7 +196,9 @@ function buildAiderCmdArgs(aiderArgs) {
             continue;
         }
 
-        if (aiderArgs[key] === true) {
+        if (aiderArgs[key] === false) {
+            additionalAiderCmd += `${lineContinuation} --no-${key}`;
+        } else if (aiderArgs[key] === true) {
             additionalAiderCmd += `${lineContinuation} --${key}`;
         } else {
             additionalAiderCmd += `${lineContinuation} --${key} "${aiderArgs[key]}"`;

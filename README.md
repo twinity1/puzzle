@@ -74,6 +74,8 @@ For example you can set model like this:
 | `puzzle init` |  | Creates and initializes the configuration file without running the main application. |
 | `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
 
+_Note: Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
+
 ### `puzzle` command parameters
 
 | Parameter | Aliases | Description |
