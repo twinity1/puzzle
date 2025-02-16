@@ -49,6 +49,30 @@ puzzle --model sonnet --cache-prompts
 or check out the [example project](https://github.com/twinity1/puzzle-example-project) for a complete demonstration of puzzle templates and usage.
 
 ---
+## 🎮 Commands and Parameters
+
+| Command | Aliases | Description | Arguments |
+|---|---|---|---|
+| `puzzle` |  | Runs scaffolding. | [optional aider args], [custom flags for setup.mjs] |
+| `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template. | |
+| `puzzle init` |  | Creates and initializes the configuration file without running the main application. | |
+| `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md). | [optional aider args], [custom flags for setup.mjs] |
+
+_Note 1): Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
+
+_Note 2): the `puzzle/common` setup will be also included automatically when you run `puzzle-aider`. See [Shared Configuration](#shared-configuration) for details._
+
+### `puzzle` command parameters
+
+| Parameter | Aliases | Description |
+|---|---|---|
+| `--chat` |  | Enables aider chat mode for interactive conversations with the LLM. |
+| `--history` | `-H` | Uses command history to re-run previous actions. Shows last 10 runs and allows reusing variables. |
+| `--no-update-check` |  | Skips version and dependency update checks. |
+| `--help` | `-h` | Shows help information. |
+| `--version` | `-v` | Shows the version number. |
+
+---
 ## ⚙️ Configuration
 
 Configuration file `.puzzle.json` is located in root of your repository
@@ -88,30 +112,6 @@ Or override the default config:
   }
 }
 ```
-
----
-## 🎮 Commands and Parameters
-
-| Command | Aliases | Description | Arguments |
-|---|---|---|---|
-| `puzzle` |  | Runs scaffolding. | [optional aider args], [custom flags for setup.mjs] |
-| `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template. | |
-| `puzzle init` |  | Creates and initializes the configuration file without running the main application. | |
-| `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md). | [optional aider args], [custom flags for setup.mjs] |
-
-_Note 1): Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
-
-_Note 2): the `puzzle/common` setup will be also included automatically when you run `puzzle-aider`. See [Shared Configuration](#shared-configuration) for details._
-
-### `puzzle` command parameters
-
-| Parameter | Aliases | Description |
-|---|---|---|
-| `--chat` |  | Enables aider chat mode for interactive conversations with the LLM. |
-| `--history` | `-H` | Uses command history to re-run previous actions. Shows last 10 runs and allows reusing variables. |
-| `--no-update-check` |  | Skips version and dependency update checks. |
-| `--help` | `-h` | Shows help information. |
-| `--version` | `-v` | Shows the version number. |
 
 ---
 ## 📄 License
