@@ -209,6 +209,15 @@ export async function prepare(context) {
 
   //EXAMPLE 3:
   
+  // you can add conventions based from which directory you are running puzzle-aider or puzzle
+  if (context.config.currentDir.includes('frontend')) {
+      context.addReadFile('puzzle/common/custom/FRONTEND_CONVENTIONS.MD');
+  }
+  
+  if (context.config.currentDir.includes('backend')) {
+      context.addReadFile('puzzle/common/custom/BACKEND_CONVENTIONS.MD');
+  }
+  
 }
 ```
 
