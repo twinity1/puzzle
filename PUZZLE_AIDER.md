@@ -2,7 +2,8 @@
 
 A specialized command that enhances Aider with two key features:
 
-## 1. JetBrains IDE Integration
+---
+## 🔧 1. JetBrains IDE Integration
 
 Manage your Aider context directly from your IDE:
 - Add/remove files via right-click menu
@@ -15,7 +16,8 @@ then:
 puzzle-aider [aider options]
 ```
 
-## 2. Dynamic Setup
+---
+## ⚙️ 2. Dynamic Setup
 
 Programmatically configure Aider command based on:
 - Current directory context

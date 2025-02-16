@@ -8,14 +8,16 @@ https://github.com/user-attachments/assets/19590216-9a94-429b-a769-d617dcad566d
 
 
 
-## Features
+---
+## ✨ Features
 
 - Add/remove files to Aider context with a single click
 - Available in right-click context menus
 - Can be bound to keyboard shortcuts
 - Works with all JetBrains IDEs
 
-## Installation
+---
+## 💾 Installation
 
 **Platform Support**: This integration currently works on:
 - MacOS
@@ -37,7 +39,8 @@ Then run:
 puzzle-aider [optional aider options, see aider --help]
 ```
 
-## Usage
+---
+## 🚀 Usage
 
 **Important**: When using this integration, you must run `puzzle-aider` instead of the regular `aider` command. The `puzzle-aider` command is automatically installed with Puzzle and handles the context file management.
 
@@ -55,7 +58,8 @@ Once installed, you can access the tool in several ways:
    - Search for "Add/Drop file to Aider context"
    - Assign your preferred shortcut (e.g. Ctrl+Alt+A)
 
-## Enhanced Features with puzzle-aider
+---
+## 🔥 Enhanced Features with puzzle-aider
 
 The `puzzle-aider` command does more than just manage files through IDE. It can:
 - Dynamically include files based on your current directory
@@ -65,7 +69,8 @@ The `puzzle-aider` command does more than just manage files through IDE. It can:
 
 See [PUZZLE_AIDER.md](PUZZLE_AIDER.md) for detailed examples of dynamic context configuration.
 
-## How It Works
+---
+## ⚙️ How It Works
 
 The integration uses JetBrains' External Tools feature to run a Node.js script (`fileHook.js`) that:
 
@@ -80,7 +85,8 @@ Each time you run the command, it will:
 - Drop the file if it's already in context
 - Update the context file accordingly
 
-## Troubleshooting
+---
+## 🔧 Troubleshooting
 
 **Q: The tool isn't showing up in my IDE**
 - Make sure you restarted your IDE after installation
@@ -94,7 +100,8 @@ Each time you run the command, it will:
 **Q: Can I use this with multiple IDEs?**
 - Yes! Run the installer for each IDE you want to configure
 
-## Uninstallation
+---
+## 🗑️ Uninstallation
 
 To remove the integration:
 1. Delete the External Tools configuration from your IDE's config directory

@@ -1,6 +1,7 @@
 # Usage Guide
 
-## Create Piece Using the Wizard
+---
+## 🧙‍♂️ Create Piece Using the Wizard
 
 To create a new piece, use the `puzzle create-piece` command to launch the interactive wizard.
 
@@ -19,7 +20,8 @@ Create scaffolding for entity creation with the following requirements:
 
 For a detailed explanation of the piece structure, please refer to the following chapters.
 
-## Creating a Piece
+---
+## 🔨 Piece structure
 
 1. A "piece" represents a set of templates for code scaffolding. It can be used for various purposes like endpoint creation, CRUD operations, test generation, etc.
 2. To create a new piece, add a new folder at `puzzle/pieces/<YOUR_PIECE_NAME>`
@@ -125,14 +127,16 @@ export async function prompt(context) {
 
 TIP: The `context.vars` object contains variables populated during scaffolding. The `PIECE_NAME` variable is built-in. In our example, this would be `CreateResourceEndpoint`.
 
-## Using Your Piece for Code Scaffolding
+---
+## 🏗️ Using Your Piece for Code Scaffolding
 
 1. Run the `puzzle` command in your repository root
 2. Select your piece/action using the SPACE BAR, then press ENTER to confirm (multiple selections are supported)
 3. Provide values for all required variables
 4. The configured `aider` command will execute, generating code based on your file structure and prompt
 
-## Tips
+---
+## 💡 Tips
 
 ### Providing Additional Context
 

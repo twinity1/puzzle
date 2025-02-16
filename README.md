@@ -4,7 +4,8 @@
 
 A flexible CLI tool for code generation and scaffolding that integrates with [aider-chat](https://aider.chat) to help automate common development tasks.
 
-## Why to use this tool?
+---
+## 🤔 Why to use this tool?
 
 Large Language Models (LLMs) are powerful tools for code generation, but they require proper context to be effective. Without clear examples and relevant files, LLMs often make incorrect assumptions, leading to extensive code rewrites. 
 
@@ -12,13 +13,15 @@ This tool solves these challenges by providing a structured framework for creati
 
 With well-designed templates, software development can become a **puzzle** made up of individual **pieces**.
 
-## Prerequisites
+---
+## 📋 Prerequisites
 
 - Node.js (v20+)
 - aider-chat (`python -m pip install aider-install && aider-install`) [aider installation](https://aider.chat/docs/install.html)
 - git
 
-## Installation
+---
+## 💾 Installation
    
 ```bash
 npm install -g puzzle-ai
@@ -30,19 +33,22 @@ puzzle
 
 - run `puzzle` command in root of your git repository to init the tool
 
-### Features
+---
+## ✨ Features
 
 - **Template-based Code Generation**: Create and use templates for repetitive coding tasks
 - **JetBrains IDE Integration**: [Add/remove files to Aider context directly from your IDE](JETBRAINS_INTEGRATION.md)
 - **Dynamic Context**: [Programmatically include files and conventions for Aider command](PUZZLE_AIDER.md)
 
-## Usage
+---
+## 🚀 Usage
 
 [Follow this guide to create your first template and start scaffolding](USAGE.md)
 
 or check out the [example project](https://github.com/twinity1/puzzle-example-project) for a complete demonstration of puzzle templates and usage.
 
-## Configuration
+---
+## ⚙️ Configuration
 
 Configuration file `.puzzle.json` is located in root of your repository
 
@@ -82,7 +88,8 @@ Or override the default config:
 }
 ```
 
-## Commands and Parameters
+---
+## 🎮 Commands and Parameters
 
 | Command | Aliases | Description                                                                          |
 |---|---|--------------------------------------------------------------------------------------|
@@ -105,6 +112,7 @@ _Note 2): the `puzzle/common` setup will be also included automatically when you
 | `--help` | `-h` | Shows help information. |
 | `--version` | `-v` | Shows the version number. |
 
-## License
+---
+## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
