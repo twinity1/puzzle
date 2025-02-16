@@ -134,7 +134,7 @@ async function processAction(
     if (varList['CHAT'] === true) {
         const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${filesLink}`;
 
-        console.log(`Executing command: ${aiderCmd}`);
+        console.log(`\x1b[36mExecuting command:\x1b[0m \x1b[33m${aiderCmd.replace('puzzle-proxy', 'aider')}\x1b[0m`); // just print aider instead of puzzle-proxy => no need to confuse the use
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
                     PUZZLE_PROMPT: prompt,
@@ -149,6 +149,10 @@ async function processAction(
 }
 
 function printAction(action) {
+    if (action === 'virtual-chat') {
+        return;
+    }
+    
     const baseText = `🎯 Performing action: ${action}`;
     const width = baseText.length + 2; // Add 2 for padding
     const border = '═'.repeat(width);
