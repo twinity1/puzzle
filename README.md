@@ -32,7 +32,7 @@ puzzle
 
 ## Usage
 
-[Follow this guide how to create your first template and start scaffolding](USAGE.md)
+[Follow this guide to create your first template and start scaffolding](USAGE.md)
 
 or check out the [example project](https://github.com/twinity1/puzzle-example-project) for a complete demonstration of puzzle templates and usage.
 
@@ -65,16 +65,29 @@ For example you can set model like this:
 }
 ```
 
+Or override the default config:
+
+```json
+{
+  "aiderArgs": {
+    "no-auto-commit": null, // null values are ignored
+    "auto-commit": true
+  }
+}
+```
+
 ## Commands and Parameters
 
 | Command | Aliases | Description                                                                          |
 |---|---|--------------------------------------------------------------------------------------|
-| `puzzle` |  | Runs the tool for scaffolding.                                                       |
+| `puzzle` |  | Runs scaffolding.                                                       |
 | `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template.                |
 | `puzzle init` |  | Creates and initializes the configuration file without running the main application. |
 | `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
 
-_Note: Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
+_Note 1): Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
+
+_Note 2): the `puzzle/common` setup will be also included automatically when you run `puzzle-aider`. See [Shared Configuration](#shared-configuration) for details._
 
 ### `puzzle` command parameters
 

@@ -158,9 +158,11 @@ export async function prompt(context) {
 }
 ```
 
+- **All paths are relative to the git repository root path (same as in aider)**
+
 ### Chat Mode
 
-When you want to have a more interactive conversation with the LLM, you can enable chat mode by passing the CHAT variable:
+When you want to have a more interactive conversation, you can enable chat mode by passing the CHAT argument:
 
 ```bash
 puzzle --chat
@@ -218,6 +220,21 @@ export async function prepare(context) {
       context.addReadFile('puzzle/common/custom/BACKEND_CONVENTIONS.MD');
   }
   
+  // EXAMPLE 4:
+  
+  // you can add file that will be written to based on some condition
+  if (someCondition) {
+      context.addReadFile('some/path/ValidatorExample.cs'); // provide example of the Validator
+      context.addWriteFile('some/other/path/{ENTITY_NAME}Validator.cs'); // provide path where will be the validator created
+  }
+ 
+  // if you want to see all available parameters then just `throw context` and run puzzle-aider command;
+  throw context;
+}
+
+export async function setup(context) {
+    // variables are already resolved here (in context.vars)
+    
 }
 ```
 
@@ -227,17 +244,6 @@ export async function prepare(context) {
   - For example `extra/conventions.txt` can store your codebase conventions
 
 **Note: the `common` setup will be also included automatically when you run `puzzle-aider`**
-
-### History
-
-You can re-run last 10 piece runs.
-
-- Simply run puzzle with `--history` argument and select an action you want to rerun
-- In combination with custom user prompt you can iterate on the generated code
-- Or you can run different piece with common variables (e.g. ENTITY_NAME) will be automatically filled
-
-command: `puzzle --history`
-
 
 ### Custom variables
 
@@ -287,3 +293,13 @@ context.varListTypes.CUSTOM_NAME = {
 
 - The `onlyDirs` option (available for search type) will only show directories as choices when scanning the repository.
 - You can add those to common setup.js into `prepare` function
+
+### History
+
+You can re-run last 10 piece runs.
+
+- Simply run puzzle with `--history` argument and select an action you want to rerun
+- In combination with custom user prompt you can iterate on the generated code
+- Or you can run different piece with common variables (e.g. ENTITY_NAME) will be automatically filled
+
+command: `puzzle --history`
