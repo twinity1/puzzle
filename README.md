@@ -28,7 +28,10 @@ npm install -g puzzle-ai
 
 cd /your/project/path
 
-puzzle
+puzzle [aider args]
+
+#example
+puzzle --model sonnet --cache-prompts
 ```
 
 - run `puzzle` command in root of your git repository to init the tool
@@ -91,12 +94,12 @@ Or override the default config:
 ---
 ## 🎮 Commands and Parameters
 
-| Command | Aliases | Description                                                                          |
-|---|---|--------------------------------------------------------------------------------------|
-| `puzzle` |  | Runs scaffolding.                                                       |
-| `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template.                |
-| `puzzle init` |  | Creates and initializes the configuration file without running the main application. |
-| `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md).
+| Command | Aliases | Description | Arguments |
+|---|---|---|---|
+| `puzzle` |  | Runs scaffolding. | [optional aider args], [custom flags for setup.mjs] |
+| `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template. | |
+| `puzzle init` |  | Creates and initializes the configuration file without running the main application. | |
+| `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md). | [optional aider args], [custom flags for setup.mjs] |
 
 _Note 1): Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
 
