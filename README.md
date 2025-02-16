@@ -30,6 +30,12 @@ puzzle
 
 - run `puzzle` command in root of your git repository to init the tool
 
+### Features
+
+- **Template-based Code Generation**: Create and use templates for repetitive coding tasks
+- **JetBrains IDE Integration**: [Add/remove files to Aider context directly from your IDE](JETBRAINS_INTEGRATION.md)
+- **Dynamic Context**: [Programmatically include files and conventions for Aider command](PUZZLE_AIDER.md)
+
 ## Usage
 
 [Follow this guide to create your first template and start scaffolding](USAGE.md)
@@ -98,14 +104,6 @@ _Note 2): the `puzzle/common` setup will be also included automatically when you
 | `--no-update-check` |  | Skips version and dependency update checks. |
 | `--help` | `-h` | Shows help information. |
 | `--version` | `-v` | Shows the version number. |
-
-### Features
-
-- **Template-based Code Generation**: Create and use templates for repetitive coding tasks
-- **History Tracking**: Use `--history` to view and reuse previous configurations
-- **Interactive Selection**: Choose actions through an interactive CLI interface
-- **Extensible Architecture**: Easy to add new templates and actions
-- **JetBrains IDE Integration**: [Add/remove files to Aider context directly from your IDE](JETBRAINS_INTEGRATION.md)
 
 ## License
 

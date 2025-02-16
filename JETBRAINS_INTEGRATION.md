@@ -31,6 +31,12 @@ puzzle-jetbrains-install
 2. Follow the prompts to select your JetBrains IDE configuration directory
 3. Restart your IDE after installation
 
+Then run:
+
+```bash
+puzzle-aider [optional aider options, see aider --help]
+```
+
 ## Usage
 
 **Important**: When using this integration, you must run `puzzle-aider` instead of the regular `aider` command. The `puzzle-aider` command is automatically installed with Puzzle and handles the context file management.
@@ -48,6 +54,16 @@ Once installed, you can access the tool in several ways:
    - Go to Preferences > Keymap
    - Search for "Add/Drop file to Aider context"
    - Assign your preferred shortcut (e.g. Ctrl+Alt+A)
+
+## Enhanced Features with puzzle-aider
+
+The `puzzle-aider` command does more than just manage files through IDE. It can:
+- Dynamically include files based on your current directory
+- Load project-specific conventions automatically
+- Include core interfaces and components programmatically
+- Configure context based on custom variables
+
+See [PUZZLE_AIDER.md](PUZZLE_AIDER.md) for detailed examples of dynamic context configuration.
 
 ## How It Works
 

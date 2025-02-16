@@ -30,11 +30,10 @@ repo/
 └── puzzle/
     ├── pieces/           # Action/scaffolding templates
     │   └── YOUR_PIECE/ 
-    │       ├── template/
-    │       │   └── your template files with the structure of repo
     │       ├── extra/
-    │       │   └── your extra files - useful for conventions 
-    │       └── setup.mjs # Configuration file that contains prompt
+    │       │   ├── examples/     # Example files for reference
+    │       │   └── conventions/  # Piece-specific conventions
+    │       └── setup.mjs         # Configuration file that contains prompt
 ```
 
 4. The `template` folder contains files that serve as references for LLM scaffolding:
