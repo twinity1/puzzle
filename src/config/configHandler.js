@@ -58,6 +58,8 @@ class ConfigHandler {
                 ...filteredArgs
             };
         }
+        
+        console.log(userConfigPath);
 
         // Ensure config exists before proceeding with initialization
         if (!userConfigPath) {

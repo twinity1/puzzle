@@ -87,13 +87,14 @@ async function main() {
 
     const configHandler = new ConfigHandler();
     await configHandler.initialize(argv);
+    const app = new App(configHandler);
 
     // If init command, exit after config initialization
     if (argv._[0] === 'init') {
+        await app.historyHandler.checkAndUpdateGitignore();
         return;
     }
 
-    const app = new App(configHandler);
 
     if (isAiderMode) {
         // Force chat mode and skip history for puzzle-aider
