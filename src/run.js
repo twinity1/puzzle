@@ -80,7 +80,7 @@ async function main() {
 
     await checkAndInstallAider();
 
-    if (argv.updateCheck !== false && !isAiderMode) {
+    if (argv.updateCheck !== false) {
         const { checkForUpdates } = require('./utils/versionCheck');
         await checkForUpdates();
     }
