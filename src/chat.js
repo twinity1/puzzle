@@ -119,7 +119,7 @@ let lastOutput = Date.now();
 aider.onData(data => {
     process.stdout.write(data);
 
-    fs.appendFileSync('.aider.out.log', data);
+    // fs.appendFileSync('.aider.out.log', data); // for debugging
 
     lastOutput = Date.now();
 

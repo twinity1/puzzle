@@ -184,13 +184,40 @@ puzzle/
 ├── common/
 │   ├── extra/       # Shared resources
 │   └── setup.mjs    # Common setup logic
+│   └── custom       # You can create your own directories and use them dynamically in prepare()
 ```
 
 - The `setup.mjs` file follows the same structure as individual pieces
-  - You can define prompts that apply to all pieces
+  - You for example add common files for all pieces
+  - Or you can define common variables that are used in all pieces
+
+```js
+export async function prepare(context) {
+  //EXAMPLE 1:
+    
+  // for example User entity is important so we want to include it in all pieces
+  context.addReadFile('src/Data/Entities/User.cs');
+
+  //EXAMPLE 2:
+  
+  // We have pieces "CreateEndpoint", "UpdateEndpoint", "DeleteEndpoint" and we want to have a short variable PIECE_ENDPOINT_NAME that is "Create", "Update", "Delete"
+  if (context.vars['PIECE_NAME'].includes('Endpoint')) {
+    context.vars['PIECE_ENDPOINT_NAME'] = context.vars['PIECE_NAME'].replace('Endpoint', '');
+  }
+  
+  // now variable PIECE_ENDPOINT_NAME will be filled automatically without need to ask user for it
+
+  //EXAMPLE 3:
+  
+}
+```
+
+
 - The `extra` folder can contain additional reference files
   - These files are automatically included in all scaffolding actions
-  - For example, `extra/conventions.txt` can store your codebase conventions
+  - For example `extra/conventions.txt` can store your codebase conventions
+
+**Note: the `common` setup will be also included automatically when you run `puzzle-aider`**
 
 ### History
 

@@ -97,6 +97,8 @@ class ConfigHandler {
         this.config = this.deepMerge(this.defaultConfig, userConfigData);
         this.config.repoPath = path.dirname(userConfigPath);
         this.config.puzzleDir = path.join(this.config.repoPath, this.config.puzzleDir);
+        this.config.currentDirAbsolute = process.cwd();
+        this.config.currentDir = path.relative(this.config.repoPath, this.config.currentDirAbsolute);
     }
 
     getConfig() {
