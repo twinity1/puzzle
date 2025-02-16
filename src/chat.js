@@ -119,12 +119,12 @@ let lastOutput = Date.now();
 aider.onData(data => {
     process.stdout.write(data);
 
-    // fs.appendFileSync('.aider.out.log', data);
+    fs.appendFileSync('.aider.out.log', data);
 
     lastOutput = Date.now();
 
     if (isAiderReady === false) {
-        isAiderReady = data.toString().includes('40m>  [0m'); // aider is ready, file was added etc.
+        isAiderReady = data.toString().includes('>  [0m'); // aider is ready, file was added etc.
     }
 });
 
