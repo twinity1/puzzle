@@ -34,8 +34,6 @@ puzzle [aider args]
 puzzle --model sonnet --cache-prompts
 ```
 
-- run `puzzle` command in root of your git repository to init the tool
-
 ---
 ## ✨ Features
 
