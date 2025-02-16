@@ -33,9 +33,10 @@ puzzle-jetbrains-install
 2. Follow the prompts to select your JetBrains IDE configuration directory
 3. Restart your IDE after installation
 
-Then run:
+Then run in your repository:
 
 ```bash
+cd your/repository
 puzzle-aider [optional aider options, see aider --help]
 ```
 
