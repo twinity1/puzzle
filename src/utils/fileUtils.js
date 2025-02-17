@@ -47,6 +47,8 @@ function unfoldWildcards(updatedRefList) {
 }
 
 function findMatchingFiles(filePath) {
+    filePath = filePath.trim();
+    
     try {
         const wildcardPath = filePath.replaceAll("$", '*');
 
@@ -106,5 +108,6 @@ module.exports = {
     unfoldWildcards,
     ensureDirectoryExists,
     findFileInDirectoriesUp,
-    getLineContinuation
+    getLineContinuation,
+    findMatchingFiles
 };

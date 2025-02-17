@@ -59,6 +59,14 @@ class App {
             return ['virtual-chat'];
         }
 
+        // Handle batch mode
+        if (process.argv[1].endsWith('puzzleBatch.js')) {
+            if (process.argv.length < 3) {
+                throw new Error('No pattern specified for batch mode. Usage: puzzle-batch <pattern>');
+            }
+            return ['virtual-chat'];
+        }
+
         const actionDir = path.join(this.config.puzzleDir, 'pieces');
         const actionList = getActionList(actionDir);
 
@@ -120,45 +128,46 @@ class App {
                 delete this.varList['HISTORY'];
             }
 
-            let actionsSelected;
-            if (this.varList['PIECE_NAME'] === 'virtual-chat') {
-                actionsSelected = ['virtual-chat'];
+            const virtualPieces = ['virtual-chat', 'puzzle-batch'];
+            
+            if (virtualPieces.includes(this.varList['PIECE_NAME'])) {
+                const action = this.varList['PIECE_NAME'];
+
+                // Skip history updates for virtual chat
+                await processAction(
+                    action,
+                    this.varList,
+                    this.config.puzzleDir,
+                    process.cwd(),
+                    this.inquirerPrompt,
+                    this.defaultVarList,
+                    this.config,
+                    gitFiles,
+                    action === 'puzzle-batch'
+                );
             } else {
-                actionsSelected = await this.selectActions();
-            }
+                const actionsSelected = await this.selectActions();
 
                 for (const action of actionsSelected) {
-                    if (action === 'virtual-chat') {
-                        // Skip history updates for virtual chat
-                        await processAction(
-                            action,
-                            this.varList,
-                            this.config.puzzleDir,
-                            process.cwd(),
-                            this.inquirerPrompt,
-                            this.defaultVarList,
-                            this.config,
-                            gitFiles
-                        );
-                    } else {
-                        await processAction(
-                            action,
-                            this.varList,
-                            this.config.puzzleDir,
-                            process.cwd(),
-                            this.inquirerPrompt,
-                            this.defaultVarList,
-                            this.config,
-                            gitFiles
-                        );
-                        this.historyHandler.updateHistory(this.varList);
-                    }
+                    await processAction(
+                        action,
+                        this.varList,
+                        this.config.puzzleDir,
+                        process.cwd(),
+                        this.inquirerPrompt,
+                        this.defaultVarList,
+                        this.config,
+                        gitFiles
+                    );
+                    this.historyHandler.updateHistory(this.varList);
                 }
+            }
             } catch (error) {
                 // Save variables to history even if selection is interrupted
                 this.historyHandler.updateHistory(this.varList);
                 throw error;
             }
+            
         } catch (error) {
             console.error('Error:', error.message);
             process.exit(1);

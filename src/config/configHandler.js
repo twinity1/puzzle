@@ -39,7 +39,7 @@ class ConfigHandler {
                 'no-watch-files', 'lint', 'lint-cmd', 'auto-lint', 'no-auto-lint', 'test-cmd', 'auto-test',
                 'no-auto-test', 'test', 'analytics', 'no-analytics', 'analytics-log', 'analytics-disable',
                 'just-check-update', 'check-update', 'no-check-update', 'show-release-notes', 'no-show-release-notes',
-                'install-main-branch', 'upgrade', 'version', 'message', 'message-file', 'gui', 'no-gui',
+                'install-main-branch', 'upgrade', 'version', 'message', 'msg', 'message-file', 'gui', 'no-gui',
                 'browser', 'no-browser', 'copy-paste', 'no-copy-paste', 'apply', 'apply-clipboard-edits',
                 'exit', 'show-repo-map', 'show-prompts', 'voice-format', 'voice-language', 'voice-input-device',
                 'file', 'read', 'vim', 'chat-language', 'yes-always', 'v', 'load', 'encoding', 'c',

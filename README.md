@@ -40,6 +40,7 @@ puzzle --model sonnet --cache-prompts
 - **Template-based Code Generation**: Create and use templates for repetitive coding tasks
 - **JetBrains IDE Integration**: [Add/remove files to Aider context directly from your IDE](JETBRAINS_INTEGRATION.md)
 - **Dynamic Context**: [Programmatically include files and conventions for Aider command](PUZZLE_AIDER.md)
+- **Batch Processing**: [Apply AI-powered modifications to multiple files at once](PUZZLE_BATCH.md)
 
 ---
 ## 🚀 Usage
@@ -57,6 +58,7 @@ or check out the [example project](https://github.com/twinity1/puzzle-example-pr
 | `puzzle create-piece` |  | Launches an interactive wizard to create a new puzzle piece template. | |
 | `puzzle init` |  | Creates and initializes the configuration file without running the main application. | |
 | `puzzle-aider` |  | For [JetBrains IDE Integration](JETBRAINS_INTEGRATION.md). | [optional aider args], [custom flags for setup.mjs] |
+| `puzzle-batch` |  | Process multiple files with a single instruction. See [Batch Mode](PUZZLE_BATCH.md). | `<pattern> --msg "instruction"` <br> Example: `puzzle-batch "src/**/*.js" --msg "add JSDoc comments"` |
 
 _Note 1): Puzzle and Puzzle-aider commands also accept extra arguments that are passed directly to aider (see all arguments in `aider --help`). For example, `puzzle-aider --architect` or `puzzle --model openrouter/anthropic/claude-3.5-sonnet`._
 

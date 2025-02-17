@@ -8,9 +8,11 @@ const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
 
 async function main() {
-    // Check if running as puzzle-aider by checking for wrapper file
+    // Check execution mode by checking wrapper file
     const isAiderMode = process.argv[1].endsWith('puzzle-aider') || 
                         process.argv[1].endsWith('puzzleAider.js');
+    const isBatchMode = process.argv[1].endsWith('puzzle-batch') || 
+        process.argv[1].endsWith('puzzleBatch.js');
     
     // Show both helps if --help is requested
     if (process.argv.includes('--help')) {
@@ -22,8 +24,17 @@ async function main() {
     }
 
     const argv = yargs(hideBin(process.argv))
-        .scriptName(isAiderMode ? 'puzzle-aider' : 'puzzle')
-        .usage('$0 [options]', 'Run the tool for code scaffolding')
+        .scriptName(isAiderMode ? 'puzzle-aider' : isBatchMode ? 'puzzle-batch' : 'puzzle')
+        .usage(isBatchMode
+            ? '$0 <pattern> [options]'
+            : '$0 [options]', 'Run the tool for code scaffolding')
+        .option('batch-pattern', {
+            type: 'string',
+            description: 'Process multiple files matching the glob pattern\n' +
+                        'Example: "src/**/*.js" or "components/*.tsx"'
+        })
+        .example('$0 "src/**/*.js"', 'Process all JavaScript files in src directory')
+        .example('$0 "components/*.tsx"', 'Process all TypeScript React files in components')
         .option('no-update-check', {
             type: 'boolean',
             description: 'Skip version and dependency update checks'
@@ -94,12 +105,22 @@ async function main() {
         await app.historyHandler.checkAndUpdateGitignore();
         return;
     }
-
+    
 
     if (isAiderMode) {
         // Force chat mode and skip history for puzzle-aider
         argv.chat = true;
         argv.PIECE_NAME = 'virtual-chat';
+    } else if (isBatchMode) {
+        // Force batch mode for puzzle-batch
+        const pattern = argv._[0] || process.argv[2];
+        if (!pattern || pattern.startsWith('-')) {
+            console.error('\x1b[31mError: Batch pattern is required and cannot start with "-"\x1b[0m');
+            console.error('\x1b[31mExample: puzzle-batch "src/**/*.js" --msg "add comments"\x1b[0m');
+            process.exit(1);
+        }
+        argv.BATCH_PATTERN = pattern;
+        argv.PIECE_NAME = 'puzzle-batch';
     }
 
     await app.run(argv);
