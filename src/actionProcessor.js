@@ -133,14 +133,16 @@ async function processAction(
 
     if (varList['CHAT'] === true) {
         const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${filesLink}`;
-
-        console.log(`\x1b[36mExecuting command:\x1b[0m \x1b[33m${aiderCmd.replace('puzzle-proxy', 'aider')}\x1b[0m`); // just print aider instead of puzzle-proxy => no need to confuse the use
+        
+        printAiderCommand(aiderCmd);
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
                     PUZZLE_PROMPT: prompt,
         }}});
     } else {
         const aiderCmd = `puzzle-proxy ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
+
+        printAiderCommand(aiderCmd);
 
         execSync(aiderCmd, {stdio: 'inherit', env: {...process.env, ...{
                     AIDER_MESSAGE: prompt,
@@ -209,6 +211,10 @@ function buildAiderCmdArgs(aiderArgs) {
         }
     }
     return additionalAiderCmd;
+}
+
+function printAiderCommand(aiderCmd) {
+    console.log(`\x1b[36mExecuting command:\x1b[0m \x1b[33m${aiderCmd.replace('puzzle-proxy', 'aider')}\x1b[0m`); // just print aider instead of puzzle-proxy => no need to confuse the use
 }
 
 module.exports = {
