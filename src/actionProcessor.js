@@ -185,9 +185,25 @@ async function resolveAllVars(
 function buildAiderCmdArgs(aiderArgs) {
     let additionalAiderCmd = '';
     const lineContinuation = getLineContinuation();
-
+    
     for (let key in aiderArgs) {
         if (aiderArgs[key] === undefined || aiderArgs[key] === null) {
+            continue;
+        }
+
+        if (key === 'read') {
+            const paths = Array.isArray(aiderArgs[key]) 
+                ? aiderArgs[key] 
+                : aiderArgs[key].split(',');
+            
+            paths.forEach(readPath => {
+                if (readPath.trim()) {
+                    const expandedPaths = findMatchingFiles(readPath.trim());
+                    expandedPaths.forEach(path => {
+                        additionalAiderCmd += `${lineContinuation} --read "${path}"`;
+                    });
+                }
+            });
             continue;
         }
 
@@ -231,42 +247,41 @@ async function processBatchFiles(varList, additionalAiderCmd, filesLink, lineCon
         
 
     if (files.length === 0) {
-        console.error(`No files found matching pattern: ${varList['BATCH_PATTERN']}`);
         return;
     }
     
     // Check if any message parameter is set
-    if (!varList['MESSAGE'] && !varList['MSG'] && !varList['MESSAGE_FILE']) {
+    if (!varList['MESSAGE'] && !varList['MSG'] && !varList['MESSAGE-FILE']) {
         console.error('Error: One of the message parameters must be set (--message, --msg, --message-file)');
         console.error('Example: puzzle-batch "pattern" --msg "add comment to each class"');
         return;
     }
 
     console.log(`\x1b[36mFound ${files.length} files matching pattern:\x1b[0m \x1b[33m${varList['BATCH_PATTERN']}\x1b[0m`);
-    console.log('\x1b[36mFiles to process:\x1b[0m');
-    files
-        .map(file => path.relative(puzzleConfig.repoPath, file))
-        .forEach(file => console.log(`  \x1b[32m- ${file}\x1b[0m`));
     
     console.log('\x1b[33mNote: Each file will be processed individually with Aider command\x1b[0m');
 
-    const { proceed } = await inquirerPrompt({
-        type: 'confirm',
-        name: 'proceed',
-        message: 'Do you want to proceed with these files?',
-        default: true
+    const { selectedFiles } = await inquirerPrompt({
+        type: 'checkbox',
+        name: 'selectedFiles',
+        message: 'Select files to process:',
+        choices: files.map(file => ({
+            name: path.relative(puzzleConfig.repoPath, file),
+            value: file,
+            checked: true
+        }))
     });
 
-    if (!proceed) {
-        console.log('Batch processing cancelled.');
+    if (selectedFiles.length === 0) {
+        console.log('No files selected. Batch processing cancelled.');
         return;
     }
 
-    for (const file of files) {
+    for (const file of selectedFiles) {
         const currentIndex = files.indexOf(file) + 1;
-        const progress = Math.round((currentIndex / files.length) * 100);
+        const progress = Math.round((currentIndex / selectedFiles.length) * 100);
         const message = `Processing file: ${file}`;
-        const stats = `Progress: ${progress}% (${currentIndex}/${files.length})`;
+        const stats = `Progress: ${progress}% (${currentIndex}/${selectedFiles.length})`;
         const width = Math.max(message.length, stats.length) + 4;
         const border = '━'.repeat(width);
         
