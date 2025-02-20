@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const { search } = require('@inquirer/prompts');
 const fg = require('fast-glob');
 const {
@@ -10,7 +9,7 @@ const {
     getChoicesForVariable, promptVariables
 } = require('./modules/variableHandler');
 const { ask } = require('./llm/ask');
-const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards} = require('./utils/fileUtils');
+const { getFilesFromSection, ensureDirectoryExists, getLineContinuation, unfoldWildcards, findMatchingFilesWithGroups} = require('./utils/fileUtils');
 const { isGitReadRequested, isGitWriteRequested } = require('./utils/git');
 const { getAllModules } = require('./modules/moduleHandler');
 const { getWriteAndReadFilesFromTemplateFiles, resolveVarsAndUpdateFilePath } = require('./modules/fileHandler');
@@ -218,82 +217,9 @@ function buildAiderCmdArgs(aiderArgs) {
     return additionalAiderCmd;
 }
 
-function printAiderCommand(aiderCmd) {
-    console.log(`\x1b[36mExecuting command:\x1b[0m \x1b[33m${aiderCmd.replace('puzzle-proxy', 'aider')}\x1b[0m`); // just print aider instead of puzzle-proxy => no need to confuse the use
-}
 
-function buildBatchCommand(additionalAiderCmd, filesLink, lineContinuation, file) {
-    return `aider${additionalAiderCmd}${lineContinuation} ${filesLink}${lineContinuation}--file "${file}"`;
-}
-
-function buildChatCommand(additionalAiderCmd, filesLink, lineContinuation, isChat) {
-    if (isChat) {
-        return `puzzle-proxy ${additionalAiderCmd}${filesLink}`;
-    }
-    return `puzzle-proxy ${additionalAiderCmd}${lineContinuation} ${filesLink}`;
-}
-
-function executeCommand(command, env = {}) {
-    printAiderCommand(command);
-    execSync(command, {
-        stdio: 'inherit',
-        env: { ...process.env, ...env }
-    });
-}
-
-async function processBatchFiles(varList, additionalAiderCmd, filesLink, lineContinuation, puzzleConfig, inquirerPrompt) {
-    
-    const files = findMatchingFiles(varList['BATCH_PATTERN']);
-        
-
-    if (files.length === 0) {
-        return;
-    }
-    
-    // Check if any message parameter is set
-    if (!varList['MESSAGE'] && !varList['MSG'] && !varList['MESSAGE-FILE']) {
-        console.error('Error: One of the message parameters must be set (--message, --msg, --message-file)');
-        console.error('Example: puzzle-batch "pattern" --msg "add comment to each class"');
-        return;
-    }
-
-    console.log(`\x1b[36mFound ${files.length} files matching pattern:\x1b[0m \x1b[33m${varList['BATCH_PATTERN']}\x1b[0m`);
-    
-    console.log('\x1b[33mNote: Each file will be processed individually with Aider command\x1b[0m');
-
-    const { selectedFiles } = await inquirerPrompt({
-        type: 'checkbox',
-        name: 'selectedFiles',
-        message: 'Select files to process:',
-        choices: files.map(file => ({
-            name: path.relative(puzzleConfig.repoPath, file),
-            value: file,
-            checked: true
-        }))
-    });
-
-    if (selectedFiles.length === 0) {
-        console.log('No files selected. Batch processing cancelled.');
-        return;
-    }
-
-    for (const file of selectedFiles) {
-        const currentIndex = files.indexOf(file) + 1;
-        const progress = Math.round((currentIndex / selectedFiles.length) * 100);
-        const message = `Processing file: ${file}`;
-        const stats = `Progress: ${progress}% (${currentIndex}/${selectedFiles.length})`;
-        const width = Math.max(message.length, stats.length) + 4;
-        const border = '━'.repeat(width);
-        
-        console.log('\n');
-        console.log(`\x1b[31m┏${border}┓\x1b[0m`);
-        console.log(`\x1b[31m┃\x1b[0m  ${stats.padEnd(width - 2)}  \x1b[31m┃\x1b[0m`);
-        console.log(`\x1b[31m┃\x1b[0m  ${message.padEnd(width - 2)}  \x1b[31m┃\x1b[0m`);
-        console.log(`\x1b[31m┗${border}┛\x1b[0m`);
-        const command = buildBatchCommand(additionalAiderCmd, filesLink, lineContinuation, file);
-        executeCommand(command);
-    }
-}
+const { BatchProcessor } = require('./modules/batchProcessor');
+const { buildChatCommand, executeCommand } = require('./utils/commandBuilder');
 
 async function processSingleFile(varList, additionalAiderCmd, filesLink, lineContinuation, prompt) {
     const command = buildChatCommand(additionalAiderCmd, filesLink, lineContinuation, varList['CHAT']);
@@ -310,7 +236,9 @@ async function executeAiderCommand(
     puzzleConfig,
     inquirerPrompt) {
     if (varList['BATCH_PATTERN']) {
-        await processBatchFiles(varList, additionalAiderCmd, filesLink, lineContinuation, puzzleConfig, inquirerPrompt);
+        const fileGroups = findMatchingFilesWithGroups(varList['BATCH_PATTERN']);
+        const batchProcessor = new BatchProcessor(fileGroups, varList, puzzleConfig);
+        await batchProcessor.process(additionalAiderCmd, filesLink, lineContinuation, inquirerPrompt);
     } else {
         await processSingleFile(varList, additionalAiderCmd, filesLink, lineContinuation, prompt);
     }

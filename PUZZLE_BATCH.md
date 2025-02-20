@@ -17,10 +17,42 @@ puzzle-batch <pattern> --msg "your instruction" [aider options]
 ### Parameters
 
 - `<pattern>`: Glob pattern to match files (required)
-  Example: `"src/**/*.js"` or `"components/*.tsx"`
+  - Basic pattern: `"src/**/*.js"` or `"components/*.tsx"`
+  - Group pattern: Use `:G` modifier to group files by directory
+    Example: `"src/modules/*:G/*.js"` will group files by subdirectories under modules/
   
 - Message (required):
   `--msg "instruction"` or `--message-file "path"`
+
+### Pattern Grouping
+
+Files can be processed either individually or in groups:
+
+1. Without `:G` modifier: Each file is processed separately
+   ```bash
+   puzzle-batch "src/**/*.js" --msg "add error handling"
+   # Each .js file is processed individually
+   ```
+
+2. With `:G` modifier: Files are grouped by directory
+
+```bash
+# Basic grouping
+puzzle-batch "src/features/*:G/*.ts" --msg "add error handling"
+# Groups files by feature directories:
+# - src/features/auth/*.ts as one group
+# - src/features/users/*.ts as another group
+# - etc.
+
+# Deep grouping
+puzzle-batch "src/domains/*:G/**/handlers/*.cs" --msg "add logging"
+# Groups handlers by domain:
+# - src/domains/orders/**/handlers/*.cs as one group
+# - src/domains/products/**/handlers/*.cs as another group
+# - etc.
+```
+
+Files are processed group by group, with all files in a group being modified together.
 
 ### Examples
 

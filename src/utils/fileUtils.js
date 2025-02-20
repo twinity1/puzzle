@@ -75,6 +75,54 @@ function findMatchingFiles(filePath) {
     }
 }
 
+function findMatchingFilesWithGroups(pattern) {
+    pattern = pattern.trim();
+    
+    try {
+        // Check if pattern contains group modifier
+        if (!pattern.includes(':G')) {
+            // If no :G modifier, each file becomes its own group
+            const files = findMatchingFiles(pattern);
+            return files.map(file => [file]);
+        }
+
+        // Split pattern into parts
+        const parts = pattern.split('/');
+        const groupIndex = parts.findIndex(p => p.includes(':G'));
+        if (groupIndex === -1) {
+            // Shouldn't happen, but handle it gracefully
+            const files = findMatchingFiles(pattern);
+            return files.map(file => [file]);
+        }
+
+        // Remove :G modifier and create base pattern
+        parts[groupIndex] = parts[groupIndex].replace(':G', '');
+        const basePattern = parts.slice(0, groupIndex + 1).join('/');
+        const remainingPattern = parts.slice(groupIndex + 1).join('/');
+
+        // Find all potential group directories
+        const options = {
+            onlyDirectories: true,
+            dot: false,
+            absolute: true,
+            ignore: ['**/node_modules/**'],
+            caseSensitiveMatch: true
+        };
+
+        const groupDirs = fg.sync(basePattern, options);
+        
+        // For each group directory, find matching files
+        return groupDirs.map(groupDir => {
+            const fullPattern = path.join(groupDir, remainingPattern);
+            return findMatchingFiles(fullPattern);
+        }).filter(group => group.length > 0); // Remove empty groups
+
+    } catch (error) {
+        console.error(`Error finding files with groups: ${error.message}`);
+        return [];
+    }
+}
+
 function ensureDirectoryExists(filePath) {
     const dirPath = path.dirname(filePath);
     fs.mkdirSync(dirPath, {recursive: true});
@@ -109,5 +157,6 @@ module.exports = {
     ensureDirectoryExists,
     findFileInDirectoriesUp,
     getLineContinuation,
-    findMatchingFiles
+    findMatchingFiles,
+    findMatchingFilesWithGroups
 };
