@@ -9,7 +9,7 @@ function getRepoPath(filePath) {
         const repoPath = execSync("git rev-parse --show-toplevel", {
             cwd: path.dirname(filePath),
             encoding: "utf-8",
-<------>    stdio: ["ignore", "pipe"]
+            stdio: ["ignore", "pipe"]
         }).trim();
         return repoPath;
     } catch (error) {
@@ -36,7 +36,7 @@ function isIgnored(filePath) {
 
     while (true) {
         const repoPath = getRepoPath(currentPath);
-........
+
         if (!repoPath) {
             return false; // If repository is not found, return false
         }
