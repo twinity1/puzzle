@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-
 const { execSync } = require("child_process");
 
 function getRepoPath(filePath) {
@@ -9,7 +8,7 @@ function getRepoPath(filePath) {
         const repoPath = execSync("git rev-parse --show-toplevel", {
             cwd: path.dirname(filePath),
             encoding: "utf-8",
-            stdio: ["ignore", "pipe"]
+	    stdio: ["ignore", "pipe"]
         }).trim();
         return repoPath;
     } catch (error) {
@@ -36,7 +35,7 @@ function isIgnored(filePath) {
 
     while (true) {
         const repoPath = getRepoPath(currentPath);
-
+        
         if (!repoPath) {
             return false; // If repository is not found, return false
         }
@@ -95,7 +94,7 @@ function toggleFileInContext(filePath) {
     const addPrefix = isIgnored(filePath) ? '/read-only' : '/add';
 
     // Determine prefix based on last action (toggle between add/drop)
-    const prefix = fileRecords.length > 0 && (fileRecords[fileRecords.length - 1].startsWith('/add') || fileRecords[fileRecords.len
+    const prefix = fileRecords.length > 0 && (fileRecords[fileRecords.length - 1].startsWith('/add') || fileRecords[fileRecords.length - 1].startsWith('/read-only'))
         ? '/drop'
         : addPrefix;
     const file = `${prefix} ${filePath}`;
@@ -113,7 +112,7 @@ function toggleFileInContext(filePath) {
         process.exit(1);
     }
 }
-    
+
 // Get file path from command line arguments
 const filePath = process.argv[3];
 toggleFileInContext(filePath);
