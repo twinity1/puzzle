@@ -1,5 +1,62 @@
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require("child_process");
+
+function getRepoPath(filePath) {
+    try {
+        // Get the root path of the repository
+        const repoPath = execSync("git rev-parse --show-toplevel", {
+            cwd: path.dirname(filePath),
+            encoding: "utf-8",
+	    stdio: ["ignore", "pipe"]
+        }).trim();
+        return repoPath;
+    } catch (error) {
+        return null;
+    }
+}
+
+function isIgnoredInRepo(filePath, repoPath) {
+    try {
+        // Run git check-ignore to determine if the file is ignored in the current repo
+        execSync(`git check-ignore -q "${filePath}"`, {
+            cwd: repoPath,
+            stdio: "ignore"
+        });
+        return true; // If git check-ignore returns 0, the file is ignored
+    } catch (error) {
+        return false; // If git check-ignore returns a non-zero exit code, file is not ignored
+    }
+}
+
+function isIgnored(filePath) {
+    let currentPath = filePath;
+    let visitedRepos = new Set(); // Set to track visited repositories
+
+    while (true) {
+        const repoPath = getRepoPath(currentPath);
+        
+        if (!repoPath) {
+            return false; // If repository is not found, return false
+        }
+
+        if (visitedRepos.has(repoPath)) {
+            // If we've already visited this repo, it means we're stuck in a loop, so stop
+            return false;
+        }
+
+        // Add the current repository to the visited set
+        visitedRepos.add(repoPath);
+
+        // Check if the file is ignored in the current repository
+        if (isIgnoredInRepo(currentPath, repoPath)) {
+            return true;
+        }
+
+        // Move one level up in the directory structure
+        currentPath = path.dirname(repoPath);
+    }
+}
 
 function toggleFileInContext(filePath) {
     // Check if argument is provided
@@ -34,10 +91,12 @@ function toggleFileInContext(filePath) {
         return pathInRecord === filePath;
     });
 
+    const addPrefix = isIgnored(filePath) ? '/read-only' : '/add';
+
     // Determine prefix based on last action (toggle between add/drop)
-    const prefix = fileRecords.length > 0 && fileRecords[fileRecords.length - 1].startsWith('/add')
+    const prefix = fileRecords.length > 0 && (fileRecords[fileRecords.length - 1].startsWith('/add') || fileRecords[fileRecords.length - 1].startsWith('/read-only'))
         ? '/drop'
-        : '/add';
+        : addPrefix;
     const file = `${prefix} ${filePath}`;
 
     try {
