@@ -1,405 +1,429 @@
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
-const { ensureDirectoryExists } = require('../utils/fileUtils');
-const { ask, aider} = require('../llm/ask');
-
-const README_CONTENT = fs.readFileSync(path.join(__dirname, '../../README.md'), 'utf8');
-const USAGE_CONTENT = fs.readFileSync(path.join(__dirname, '../../USAGE.md'), 'utf8')
-    .replace(/## Create Piece Using the Wizard[\s\S]*?(?=## Creating a Piece)/, ''); // do not confuse the LLM with this
-
-const softwareDescription = `
-You are helping to create a new piece for a software project.:
-
-README.md
-
-${README_CONTENT}
-
-USAGE.md
-
-${USAGE_CONTENT}
-
-Prompt:
-`;
+const { ensureDirectoryExists, findMatchingFiles } = require('../utils/fileUtils');
+const { aider } = require('../llm/ask');
 
 async function getPieceName(inquirerPrompt) {
     const { pieceName } = await inquirerPrompt({
         type: 'input',
         name: 'pieceName',
-        message: 'Enter the name for your new piece:',
+        message: 'Enter the name for your new piece:\n' +
+                 '\x1b[90m(A piece is a template for code scaffolding, like "PostApiEndpoint")\x1b[0m\n' +
+                 'Examples: \x1b[36m"Documentation"\x1b[0m, \x1b[36m"EntityListingScreen"\x1b[0m, \x1b[36m"IntegrationTest"\x1b[0m\n' +
+                 '\x1b[33mYour piece name:\x1b[0m',
         validate: (input) => {
             if (/^[a-zA-Z0-9-_]+$/.test(input)) return true;
-            return 'Please use only letters, numbers, hyphens and underscores';
+            return '\x1b[31mPlease use only letters, numbers, hyphens and underscores\x1b[0m';
         }
     });
     console.log(`Piece name selected: ${pieceName}`);
     return pieceName;
 }
 
-async function getPieceInfo(inquirerPrompt) {
-    const { pieceInfo } = await inquirerPrompt({
-        type: 'editor',
-        name: 'pieceInfo',
-        message: 'Describe what this piece should do (e.g. "Create "Read" endpoint for an entity that will be used in CRUD")\n' +
-                 'Provide path to example files (controller, vue template, react template, repository, dto, etc.)'
-    });
-    return pieceInfo;
+/**
+ * Creates directory structure for a new piece
+ * @param {string} pieceDir - The piece directory path
+ * @returns {Object} - Object containing paths to important directories
+ */
+function createPieceDirectories(pieceDir) {
+    const templateDir = path.join(pieceDir, 'template');
+    const extraDir = path.join(pieceDir, 'extra');
+    const examplesDir = path.join(extraDir, 'examples');
+    
+    fs.mkdirSync(pieceDir, { recursive: true });
+    fs.mkdirSync(templateDir, { recursive: true });
+    fs.mkdirSync(extraDir, { recursive: true });
+    fs.mkdirSync(examplesDir, { recursive: true });
+    
+    return { templateDir, extraDir, examplesDir };
 }
 
+/**
+ * Creates the setup.mjs file with template content
+ * @param {string} pieceDir - The piece directory path
+ * @param {string} pieceName - The name of the piece
+ * @returns {string} - Path to the created setup.mjs file
+ */
+function createSetupFile(pieceDir, pieceName) {
+    const setupPath = path.join(pieceDir, 'setup.mjs');
+    const setupContent = `export async function prepare(context) {
+    // Add read-only files for context (for example - endpoint needs to have some database entity to work with)
+    // context.addReadFile('path/to/file');
+    
+    // Use can use variables in the template files
+    // context.addReadFile('path/to/file/{ENTITY_NAME}.js');
+    
+    // And you can use glob patterns to add multiple files
+    // context.addReadFile('path/to/files/**/*.js');
+}
+
+export async function setup(context) {
+}
+
+export async function prompt(context) {
+    return {
+        prompt: \`Create files for the ${pieceName} piece.\` // change this prompt to something more specific to your piece
+    };
+}`;
+
+    fs.writeFileSync(setupPath, setupContent);
+    return setupPath;
+}
+
+/**
+ * Checks if a piece already exists and asks for confirmation to overwrite
+ * @param {string} pieceDir - The piece directory path
+ * @param {string} pieceName - The name of the piece
+ * @param {Function} inquirerPrompt - The inquirer prompt function
+ * @returns {Promise<boolean>} - True if the piece can be created/overwritten
+ */
+async function checkExistingPiece(pieceDir, pieceName, inquirerPrompt) {
+    if (!fs.existsSync(pieceDir)) {
+        return true;
+    }
+    
+    const { overwritePiece } = await inquirerPrompt({
+        type: 'confirm',
+        name: 'overwritePiece',
+        message: `A piece named '${pieceName}' already exists. Do you want to overwrite it?`,
+        default: false
+    });
+
+    if (!overwritePiece) {
+        console.log('Piece creation cancelled.');
+        return false;
+    }
+
+    console.log(`Removing existing piece directory: ${pieceDir}`);
+    fs.rmSync(pieceDir, { recursive: true, force: true });
+    return true;
+}
+
+/**
+ * Prompts the user for reference files
+ * @param {Function} inquirerPrompt - The inquirer prompt function
+ * @returns {Promise<Array<string>>} - Array of reference file paths
+ */
+async function promptForReferenceFiles(inquirerPrompt) {
+    console.log('\n\x1b[36mNow, let\'s add some reference files for your piece.\x1b[0m');
+    console.log('\x1b[90mThese files will help when creating templates based on your existing code.\x1b[0m');
+    
+    const { referenceFiles } = await inquirerPrompt({
+        type: 'editor',
+        name: 'referenceFiles',
+        message: 'Enter paths to reference files (one per line):',
+        default: '# Enter file paths relative to repository root\n\n# Individual files:\n# src/controllers/UserController.js\n# src/models/User.js\n\n# Glob patterns (will match multiple files):\n# src/models/*.js\n# src/controllers/**/*.js\n\n# Directories (will include all files recursively):\n# src/views/\n# src/components'
+    });
+    
+    if (!referenceFiles || !referenceFiles.trim()) {
+        return [];
+    }
+    
+    return referenceFiles
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line && !line.startsWith('#'));
+}
+
+/**
+ * Expands file paths, handling glob patterns and directories
+ * @param {Array<string>} files - Array of file paths
+ * @returns {Array<string>} - Array of expanded file paths
+ */
+function expandFilePaths(files) {
+    const { findMatchingFiles } = require('../utils/fileUtils');
+    
+    const expandedPaths = [];
+    
+    for (const file of files) {
+        const isDirectory = file.endsWith('/') || file.endsWith('\\') || 
+                           (fs.existsSync(file) && fs.statSync(file).isDirectory());
+        
+        if (file.includes('*')) {
+            // It's a glob pattern, use findMatchingFiles
+            const matches = findMatchingFiles(file);
+            if (matches.length > 0) {
+                expandedPaths.push(...matches);
+            } else {
+                // If no matches found, keep the original pattern
+                expandedPaths.push(file);
+            }
+        } else if (isDirectory) {
+            // It's a directory, convert to glob pattern and find matches
+            const dirPath = file.endsWith('/') || file.endsWith('\\') ? file : `${file}/`;
+            const globPattern = `${dirPath}**/*`;
+            const matches = findMatchingFiles(globPattern);
+            
+            if (matches.length > 0) {
+                expandedPaths.push(...matches);
+            } else {
+                // If no matches found, keep the original directory pattern
+                expandedPaths.push(globPattern);
+            }
+        } else {
+            // Regular file path
+            expandedPaths.push(file);
+        }
+    }
+    
+    return expandedPaths;
+}
+
+/**
+ * Displays information about the created piece
+ * @param {string} pieceName - The name of the piece
+ * @param {string} pieceDir - The piece directory path
+ */
+function displayPieceInfo(pieceName, pieceDir) {
+    console.log(`\n✅ Piece '${pieceName}' created successfully!`);
+    
+    // Get actual directory structure
+    const dirStructure = [];
+    
+    function buildDirTree(dir, prefix = '', isLast = true) {
+        const dirName = path.basename(dir);
+        const displayName = dir === pieceDir ? `📁 ${dir}` : `📁 ${dirName}`;
+        dirStructure.push(`${prefix}${isLast ? '└── ' : '├── '}${displayName}`);
+        
+        const items = fs.readdirSync(dir, { withFileTypes: true });
+        const dirs = items.filter(item => item.isDirectory());
+        const files = items.filter(item => item.isFile());
+        
+        // Process directories
+        dirs.forEach((d, i) => {
+            const isLastDir = i === dirs.length - 1 && files.length === 0;
+            const newPrefix = prefix + (isLast ? '    ' : '│   ');
+            buildDirTree(path.join(dir, d.name), newPrefix, isLastDir);
+        });
+        
+        // Process files
+        files.forEach((f, i) => {
+            const isLastFile = i === files.length - 1;
+            dirStructure.push(`${prefix}${isLast ? '    ' : '│   '}${isLastFile ? '└── ' : '├── '}📄 ${f.name}`);
+        });
+    }
+    
+    // Build directory tree
+    buildDirTree(pieceDir);
+    
+    console.log(`\nDirectory structure created:`);
+    dirStructure.forEach(line => console.log(line));
+    
+    console.log(`\nNext steps:`);
+    console.log(`1. Add template files to the template/ directory`);
+    console.log(`2. Edit setup.mjs to configure your piece`);
+    console.log(`3. Run 'puzzle' to use your new piece`);
+}
+
+/**
+ * Prompts the user for template creation
+ * @param {Function} inquirerPrompt - The inquirer prompt function
+ * @returns {Promise<{createTemplates: boolean, useSonnet: boolean}>} - User choices
+ */
+async function promptForTemplateCreation(inquirerPrompt) {
+    const { createTemplates } = await inquirerPrompt({
+        type: 'confirm',
+        name: 'createTemplates',
+        message: '\n\x1b[36mWould you like to generate template files using Aider?\x1b[0m',
+        default: true
+    });
+    
+    let useSonnet = false;
+    
+    if (createTemplates) {
+        const { confirmSonnet } = await inquirerPrompt({
+            type: 'confirm',
+            name: 'confirmSonnet',
+            message: '\n\x1b[36mWould you like to use Claude Sonnet for better template generation?\x1b[0m\n' +
+                     '\x1b[90mNote: The model configured in .aider.conf.yml will be used.\x1b[0m\n' +
+                     '\x1b[90mRecommendation: Claude Sonnet provides excellent results for code generation.\x1b[0m',
+            default: true
+        });
+        
+        useSonnet = confirmSonnet;
+    }
+    
+    return { createTemplates, useSonnet };
+}
+
+/**
+ * Creates template files using AI
+ * @param {string} puzzleDir - The puzzle directory path
+ * @param {string} pieceDir - The piece directory path
+ * @param {string} pieceName - The name of the piece
+ * @param {Array<string>} referenceFiles - Array of reference file paths
+ * @param {boolean} useSonnet - Whether to use Claude Sonnet model
+ */
+async function createTemplateFiles(puzzleDir, pieceDir, pieceName, referenceFiles, useSonnet) {
+    const { aider } = require('../llm/ask');
+    const templateDir = path.join(pieceDir, 'template');
+    
+    console.log('\n\x1b[36mGenerating template files using AI...\x1b[0m');
+    console.log('\x1b[90mThis may take a moment depending on the complexity of your reference files.\x1b[0m');
+    
+    // Set up options for aider
+    const aiderOptions = {};
+    
+    if (useSonnet) {
+        console.log('\x1b[36mUsing Claude Sonnet for template generation.\x1b[0m');
+        aiderOptions.model = "openrouter/anthropic/claude-3.5-sonnet";
+        console.log('\x1b[90mUsing model: openrouter/anthropic/claude-3.5-sonnet\x1b[0m');
+    }
+    
+    try {
+        // Get all files in the template directory
+        const templateFiles = [];
+        
+        // Create a list of potential template files based on reference files
+        referenceFiles.forEach(refFile => {
+            try {
+                // Get the relative path from the repo root
+                const relativePath = path.relative(process.cwd(), refFile);
+                
+                // Skip files that are outside the repo
+                if (relativePath.startsWith('..')) return;
+                
+                // Create a template path with variables
+                let templatePath = relativePath;
+                
+                // Extract potential entity names from the file path
+                const pathParts = relativePath.split(path.sep);
+                const fileName = pathParts[pathParts.length - 1];
+                
+                // Replace potential entity names with variables
+                // Example: UserController.js -> {ENTITY_NAME}Controller.js
+                const fileNameParts = fileName.split('.');
+                if (fileNameParts.length > 1) {
+                    const baseName = fileNameParts[0];
+                    const extension = fileNameParts.slice(1).join('.');
+                    
+                    // Check if the base name has camel or pascal case that could be an entity
+                    if (/^[A-Z][a-zA-Z0-9]*$/.test(baseName)) {
+                        // Pascal case like UserController
+                        templatePath = templatePath.replace(baseName, '{ENTITY_NAME}');
+                    } else if (/^[a-z]+([A-Z][a-zA-Z0-9]*)+$/.test(baseName)) {
+                        // Camel case like userController
+                        templatePath = templatePath.replace(baseName, '{entity_name}');
+                    }
+                }
+                
+                // Add to template files list
+                templateFiles.push(path.join(templateDir, templatePath));
+            } catch (error) {
+                // Skip files that cause errors
+                console.error(`Error processing reference file ${refFile}: ${error.message}`);
+            }
+        });
+        
+        // Create prompt for AI
+        const prompt = `
+Create template files for a piece named "${pieceName}" based on the provided reference files.
+
+The template files should:
+1. Follow the same structure as the reference files
+2. Replace specific implementation details with generic examples
+3. Use variables in FILE and DIRECTORY NAMES where appropriate (e.g., {ENTITY_NAME}, {MODULE_NAME}, {APP_NAME}, {SERVICE_NAME} etc.). For example src/app/User/service.ts => src/app/{ENTITY_NAME}/service.ts or src/app/modules/Client/service.ts => src/app/modules/{MODULE_NAME}/service.ts
+4. Do not use those variables directly in the FILE CONTENT. Instead just use word "Example" => the file CONTENT must be syntactically correct (the brackets {} will probably break it)
+5. But not use the word Example in file NAMES!  
+6. Do not edit prepare() function in setup.mjs
+7. Try to understand what is user trying to achieve and update prompt in prompt() function
+
+Create the template files directly in the template directory.
+`;
+
+        // Call aider to generate templates
+        await aider(puzzleDir, prompt, referenceFiles, templateFiles, aiderOptions);
+        
+        // Count created files
+        let filesCreated = 0;
+        if (fs.existsSync(templateDir)) {
+            const countFiles = (dir) => {
+                let count = 0;
+                const items = fs.readdirSync(dir, { withFileTypes: true });
+                
+                for (const item of items) {
+                    if (item.isDirectory()) {
+                        count += countFiles(path.join(dir, item.name));
+                    } else {
+                        count++;
+                    }
+                }
+                
+                return count;
+            };
+            
+            filesCreated = countFiles(templateDir);
+        }
+        
+        console.log(`\n✅ Created ${filesCreated} template files in the template directory`);
+    } catch (error) {
+        console.error('\n\x1b[31mError generating template files:\x1b[0m', error);
+        console.log('\x1b[33mYou can still create template files manually in the template directory.\x1b[0m');
+    }
+}
+
+/**
+ * Creates a new piece with the given name
+ * @param {string} puzzleDir - The puzzle directory path
+ * @param {Function} inquirerPrompt - The inquirer prompt function
+ * @returns {Promise<Object|null>} - Object containing the piece name or null if cancelled
+ */
 async function createNewPiece(puzzleDir, inquirerPrompt) {
     console.log('Starting new piece creation process...');
 
     const pieceName = await getPieceName(inquirerPrompt);
-    const pieceInfo = await getPieceInfo(inquirerPrompt);
-    const readFiles = await selectFilesForPiece(pieceInfo, inquirerPrompt, puzzleDir);
-
-    if (!readFiles.length) {
-        console.log('No files selected for piece creation.');
+    
+    // Create piece directory and setup.mjs file
+    const piecesDir = path.join(puzzleDir, 'pieces');
+    const pieceDir = path.join(piecesDir, pieceName);
+    
+    // Check if piece already exists
+    if (!await checkExistingPiece(pieceDir, pieceName, inquirerPrompt)) {
         return null;
     }
-
-    const { pieceDir, normalizedWriteFiles } = await preparePieceStructure(
-        puzzleDir,
-        pieceName,
-        pieceInfo,
-        readFiles,
-        inquirerPrompt
-    );
-
-    if (!pieceDir) {
-        return null;
+    
+    // Create directories
+    createPieceDirectories(pieceDir);
+    
+    // Create setup.mjs file
+    const setupPath = createSetupFile(pieceDir, pieceName);
+    
+    // Get reference files
+    const files = await promptForReferenceFiles(inquirerPrompt);
+    let expandedFiles = [];
+    
+    // Process reference files
+    if (files.length > 0) {
+        expandedFiles = expandFilePaths(files);
+        
+        console.log('\n\x1b[36mExpanded reference files:\x1b[0m');
+        expandedFiles.forEach(file => console.log(`- ${file}`));
+        
+        // Ask if user wants to create template files
+        const { createTemplates, useSonnet } = await promptForTemplateCreation(inquirerPrompt);
+        
+        if (createTemplates) {
+            await createTemplateFiles(puzzleDir, pieceDir, pieceName, expandedFiles, useSonnet);
+        }
     }
-
-    await generatePieceDetails(puzzleDir, pieceName, pieceInfo, readFiles, normalizedWriteFiles);
-    console.log(`Piece '${pieceName}' created 🔥!`);
-
+    
+    // Display information
+    displayPieceInfo(pieceName, pieceDir);
+    
     return { pieceName };
-}
-
-async function selectFilesForPiece(pieceInfo, inquirerPrompt, puzzleDir) {
-    let readFiles = [];
-    let continueSelecting = true;
-    let selectFilesTries = 0;
-
-    while (continueSelecting) {
-        const filesPrompt = await getFilesPrompt(selectFilesTries, inquirerPrompt);
-        const gitFiles = getGitTrackedFiles();
-
-        if (!await confirmLargeFileProcessing(gitFiles, inquirerPrompt)) {
-            continueSelecting = false;
-            continue;
-        }
-
-        try {
-            // Only try AI suggestions if we haven't failed before
-            if (selectFilesTries === 0) {
-                readFiles = await getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir);
-            } else {
-                throw new Error('Skipping AI suggestions after previous failure');
-            }
-        } catch (error) {
-            console.error('Error getting AI file suggestions:');
-            console.error(error.stack || error);
-
-            // Offer manual file selection
-            const { manualFiles } = await inquirerPrompt({
-                type: 'editor',
-                name: 'manualFiles',
-                message: 'Enter file paths manually (from root of the repo, one per line or comma separated):'
-            });
-
-            // Split input by newlines or commas and trim whitespace
-            const newFiles = manualFiles.split(/[\n,]/)
-                .map(file => file.trim())
-                .filter(file => file.length > 0);
-
-            // Add only files that exist in git repository
-            const gitFiles = getGitTrackedFiles();
-            newFiles.forEach(file => {
-                if (gitFiles.includes(file) && !readFiles.includes(file)) {
-                    readFiles.push(file);
-                }
-            });
-        }
-
-        continueSelecting = await confirmContinueSelection(readFiles, inquirerPrompt);
-        selectFilesTries++;
-    }
-
-    return readFiles;
-}
-
-async function getFilesPrompt(selectFilesTries, inquirerPrompt) {
-    if (selectFilesTries > 0) {
-        const { filesPrompt: newPrompt } = await inquirerPrompt({
-            type: 'input',
-            name: 'filesPrompt',
-            message: 'Which files should be changed?',
-        });
-        return `Requirement: ${newPrompt}`;
-    }
-    return '';
-}
-
-async function confirmLargeFileProcessing(gitFiles, inquirerPrompt) {
-    if (gitFiles.length > 500) {
-        // Calculate total characters in all file paths
-        const totalChars = gitFiles.reduce((sum, file) => sum + file.length, 0);
-        // Estimate tokens using OpenAI's formula: ~1 token per 4 characters
-        const estimatedTokens = Math.ceil(totalChars / 4);
-
-        const { continueWithLargeFiles } = await inquirerPrompt({
-            type: 'confirm',
-            name: 'continueWithLargeFiles',
-            message: `Warning: Found ${gitFiles.length} files. Processing this many file names (content of files is not exposed!) may use significant LLM tokens (~${estimatedTokens} tokens). Continue?`,
-            default: true
-        });
-        return continueWithLargeFiles;
-    }
-    return true;
-}
-
-async function getAiFileSuggestions(pieceInfo, filesPrompt, readFiles, gitFiles, inquirerPrompt, puzzleDir) {
-    // Create a tree structure from the file paths
-    const pathTree = {};
-
-    gitFiles.forEach(filePath => {
-        const parts = filePath.split(path.sep);
-        let currentLevel = pathTree;
-
-        parts.forEach((part, index) => {
-            if (!currentLevel[part]) {
-                currentLevel[part] = {};
-            }
-            currentLevel = currentLevel[part];
-        });
-    });
-
-    // Convert tree to compact string representation
-    const buildTreeString = (node, indent = '') => {
-        let result = '';
-        Object.keys(node).forEach(key => {
-            result += `${indent}${key}\n`;
-            if (Object.keys(node[key]).length > 0) {
-                result += buildTreeString(node[key], indent + '  ');
-            }
-        });
-        return result;
-    };
-
-    const gitFilesString = buildTreeString(pathTree);
-
-    const aiPrompt = `
-${softwareDescription}
-        
-You will be trying to find files for scaffolding template.
-Files will be used as example for scaffolding.
-        
-Find files according to description.
-Description of the scaffolding: ${pieceInfo}
-
-${filesPrompt}
-
-Currently selected files: ${readFiles.join(', ')}
-
-Can you suggest additional relevant files that should be included? Return the whole list.
-Suggest only existing files!!
-Provide JSON array (flat array) of file paths from the repository that are most relevant.
-
-Available files in repository:
-${gitFilesString}
-`;
-
-    const result = await ask(puzzleDir, aiPrompt, [], []);
-    return JSON.parse(result);
-}
-
-async function confirmContinueSelection(readFiles, inquirerPrompt) {
-    if (readFiles.length > 0) {
-        console.log('\nCurrently selected files:');
-        readFiles.forEach(file => console.log(`- ${file}`));
-    }
-
-    const { continue: shouldContinue } = await inquirerPrompt({
-        type: 'confirm',
-        name: 'continue',
-        message: 'Would you like to add/remove more files?',
-        default: false
-    });
-
-    return shouldContinue;
-}
-
-async function generateAndValidateTemplatePaths(puzzleDir, pieceName, pieceInfo, readFiles, templateDir, inquirerPrompt) {
-    const basePrompt = createPromptMessage(pieceName, pieceInfo);
-    const initialPrompt = `${basePrompt}
-        
-        Complete this task:
-        
-        Give me paths for those files, as json flat array (array of strings).
-        Just fill variables in each path, do not change the path (adding/removing dir in the file path is forbidden)!
-        Each path must contain at least one variable. 
-        
-        If you find dir/part of file that could be common for future generating, then replace the variable in the path.
-        For example {SERVICE_NAME}, {MODULE_NAME}, Create{ENTITY_NAME}Endpoint.cs, {ENTITY_NANE}Component.vue, {APP_NAME}, etc.
-        
-        ${readFiles.join('\n')}`;
-
-    let normalizedWriteFiles = [];
-    let userSatisfied = false;
-    let currentPrompt = initialPrompt;
-
-    while (!userSatisfied) {
-        const writeFilesByAi = JSON.parse(await ask(
-            puzzleDir,
-            currentPrompt,
-            readFiles,
-            []
-        ));
-
-        normalizedWriteFiles = writeFilesByAi.map(filePath =>
-            filePath.startsWith(templateDir) ? filePath : path.join(templateDir, filePath)
-        );
-
-        console.log('\nGenerated template file paths:');
-        normalizedWriteFiles.forEach(file => console.log(`- ${file}`));
-
-        const { confirmFiles, modifyPrompt } = await inquirerPrompt([{
-            type: 'confirm',
-            name: 'confirmFiles',
-            message: 'Are these template file paths correct?',
-            default: true
-        }, {
-            type: 'input',
-            name: 'modifyPrompt',
-            message: 'Enter any corrections or additional instructions:',
-            when: (answers) => !answers.confirmFiles,
-            default: ''
-        }]);
-
-        if (confirmFiles) {
-            userSatisfied = true;
-        } else {
-
-            currentPrompt = `${basePrompt}
-                
-                ${modifyPrompt}
-                
-                Here are the last generated file paths:
-                ${writeFilesByAi.join('\n')}
-                
-                Update the file paths based on these instructions.
-                Return the updated paths as a JSON array.`;
-        }
-    }
-
-    return normalizedWriteFiles;
-}
-
-async function preparePieceStructure(puzzleDir, pieceName, pieceInfo, readFiles, inquirerPrompt) {
-    // Step 1: Initialize directories
-    const pieceDir = path.join(puzzleDir, 'pieces', pieceName);
-    const templateDir = path.join(pieceDir, 'template');
-    console.log('Trying to figure out piece template paths...');
-
-    // Step 2: Generate and validate template paths
-    const normalizedWriteFiles = await generateAndValidateTemplatePaths(
-        puzzleDir,
-        pieceName,
-        pieceInfo,
-        readFiles,
-        templateDir,
-        inquirerPrompt
-    );
-
-    // Step 3: Add setup.mjs to the file list
-    normalizedWriteFiles.push(path.join(pieceDir, 'setup.mjs'));
-
-    // Step 4: Confirm final piece generation
-    if (!await confirmPieceGeneration(pieceDir, inquirerPrompt)) {
-        return { pieceDir: null, normalizedWriteFiles: [] };
-    }
-
-    return { pieceDir, normalizedWriteFiles };
-}
-
-function createPromptMessage(pieceName, pieceInfo) {
-    return `
-${softwareDescription}
-
-Piece Name: ${pieceName}
-Piece requirements: ${pieceInfo}
-
-- Files from the existing-working action are attached
-- Convert those files to some sort of neutral form - use word "example" for domain specific naming
-- Do not use variables {} in file contents! Only in paths! 
-`;
-}
-
-async function confirmPieceGeneration(pieceDir, inquirerPrompt) {
-    if (fs.existsSync(pieceDir)) {
-        const { overwritePiece } = await inquirerPrompt({
-            type: 'confirm',
-            name: 'overwritePiece',
-            message: `A piece named '${pieceDir.split(path.sep).pop()}' already exists. Do you want to overwrite it?`,
-            default: false
-        });
-
-        if (!overwritePiece) {
-            console.log('Piece creation cancelled.');
-            return false;
-        }
-
-        console.log(`Removing existing piece directory: ${pieceDir}`);
-        fs.rmSync(pieceDir, { recursive: true, force: true });
-    }
-
-    const { confirmGeneration } = await inquirerPrompt({
-        type: 'confirm',
-        name: 'confirmGeneration',
-        message: 'Would you like to generate piece details using AI?',
-        default: true
-    });
-
-    if (!confirmGeneration) {
-        console.log('Piece generation cancelled.');
-        return false;
-    }
-
-    return true;
-}
-
-async function generatePieceDetails(puzzleDir, pieceName, pieceInfo, readFiles, normalizedWriteFiles) {
-    const promptMessage = createPromptMessage(pieceName, pieceInfo);
-
-    console.log('Generating piece details using AI...');
-    await aider(
-        puzzleDir,
-        `${promptMessage}
-
-Complete this task:
-Create the template (piece) according to attached read-only files.
-Do not add attached read-only files to prepare method as addReadFile('....') or don't mentioned them anywhere. Example files that you will generate will be sufficient as example.
-
-This is the list of the read-only files that you will create the template from:
-${readFiles.join('\n')}
-
-Write result to those files:
-${normalizedWriteFiles.join('\n')}
-`,
-        readFiles,
-        normalizedWriteFiles);
-    console.log('AI piece details generated successfully');
-}
-
-function getGitTrackedFiles() {
-    // Get list of all tracked files using git ls-files
-    const gitFiles = execSync('git ls-files', { encoding: 'utf-8' })
-        .split('\n')
-        .filter(file => file.trim() !== '');
-    return gitFiles;
 }
 
 module.exports = {
     createNewPiece,
+    // Export helper functions for testing
+    _internal: {
+        createPieceDirectories,
+        createSetupFile,
+        checkExistingPiece,
+        promptForReferenceFiles,
+        expandFilePaths,
+        displayPieceInfo,
+        promptForTemplateCreation,
+        createTemplateFiles
+    }
 };

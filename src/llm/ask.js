@@ -37,7 +37,7 @@ async function ask(scriptDir, message, readFiles = [], writeFiles = []) {
     }
 }
 
-async function aider(scriptDir, message, readFiles = [], writeFiles = []) {
+async function aider(scriptDir, message, readFiles = [], writeFiles = [], options = {}) {
     try {
         const messageFile = path.join(scriptDir, 'message.txt');
 
@@ -46,7 +46,11 @@ async function aider(scriptDir, message, readFiles = [], writeFiles = []) {
 
         const readFilesArgs = readFiles.map(file => `--read "${file}"`).join(' ');
         const writeFilesArgs = writeFiles.map(file => `--file "${file}"`).join(' ');
-        const aiderCommand = `aider --no-suggest-shell-commands --no-detect-urls --no-auto-commit --no-auto-lint --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`;
+        
+        // Add model parameter if specified
+        const modelArg = options.model ? `--model "${options.model}"` : '';
+        
+        const aiderCommand = `aider --yes-always --no-suggest-shell-commands --no-detect-urls --no-auto-commit --no-auto-lint ${modelArg} --message-file ${messageFile} ${readFilesArgs} ${writeFilesArgs}`;
 
         console.log(`Executing command: ${aiderCommand}`);
 
