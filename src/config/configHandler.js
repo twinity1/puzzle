@@ -54,7 +54,7 @@ class ConfigHandler {
                 'no-suggest-shell-commands', 'fancy-input', 'no-fancy-input', 'multiline',
                 'no-multiline', 'notifications', 'no-notifications', 'notifications-command',
                 'detect-urls', 'no-detect-urls', 'editor', 'opus', 'sonnet', 'haiku',
-                '4', '4o', 'mini', '4-turbo', '35turbo', 'deepseek', 'o1-mini', 'o1-preview'
+                '4', '4o', 'mini', '4-turbo', '35turbo', 'deepseek', 'o1-mini', 'o1-preview', 'mcp-servers', 'mcp-servers-file'
             ];
 
             // Filter and merge only allowed args
