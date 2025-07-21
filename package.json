@@ -35,12 +35,13 @@
     "start": "node src/run.js"
   },
   "dependencies": {
+    "@lydell/node-pty": "1.1.0",
     "axios": "^1.7.9",
     "dayjs": "^1.11.13",
     "fast-glob": "^3.3.2",
     "inquirer": "^12.1.0",
+    "js-yaml": "^4.1.0",
     "node": "^20.11.1",
-    "@lydell/node-pty": "1.1.0",
     "yargs": "^17.7.2"
   }
 }

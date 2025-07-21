@@ -2,7 +2,10 @@
 
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
-const { execSync } = require('child_process');
+const { execSync, spawn } = require('child_process');
+const path = require('path');
+const prompt = require('inquirer').createPromptModule();
+const { readUserConfig, writeUserConfig, configPath: userConfigPath } = require('./utils/userConfig');
 const App = require('./app');
 const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
@@ -98,6 +101,90 @@ async function main() {
 
     const configHandler = new ConfigHandler();
     await configHandler.initialize(argv);
+
+    // Check for JetBrains IDE and start watcher
+    if (process.env.TERMINAL_EMULATOR && process.env.TERMINAL_EMULATOR.includes('JetBrains')) {
+        const userConfig = readUserConfig();
+        let showDiffs = userConfig.showJetBrainsDiff;
+
+        if (showDiffs === undefined) {
+            const { confirm } = await prompt({
+                type: 'confirm',
+                name: 'confirm',
+                message: '\x1b[36mJetBrains IDE detected!\x1b[0m Would you like to automatically see diffs for AI changes in your IDE?\n\x1b[90m(This opens a diff window after each AI edit for you to review)\x1b[0m',
+                default: true
+            });
+            showDiffs = confirm;
+            if (showDiffs) {
+                console.log('\n\x1b[33;1m┌──────────────────────────────────────────────────────────────┐');
+                console.log('│ \x1b[31;1mATTENTION:\x1b[0m \x1b[33;1mWhen the diff window appears...                   │');
+                console.log('│                                                              │');
+                console.log('│ • \x1b[32mLeft side:\x1b[0m Your original code (before AI changes).         │');
+                console.log('│ • \x1b[31mRight side:\x1b[0m The file with AI changes applied.              │');
+                console.log('│                                                              │');
+                console.log('│ \x1b[33;1m➡️ \x1b[1mOnly edit the file on the RIGHT side to keep your changes.\x1b[0m │');
+                console.log('└──────────────────────────────────────────────────────────────┘\n');
+            }
+            userConfig.showJetBrainsDiff = showDiffs;
+            writeUserConfig(userConfig);
+            console.log(`\x1b[90mSetting saved to \x1b[33m${userConfigPath}\x1b[90m. You can change it there later.\x1b[0m`);
+        }
+
+        if (showDiffs) {
+            const watcherScriptPath = path.join(__dirname, 'utils/jetbrainsHistoryWatcher.js');
+            const repoPath = configHandler.getConfig().repoPath;
+
+            let ideName = 'idea'; // default
+            const bundleIdentifier = (process.env.__CFBundleIdentifier || '').toLowerCase();
+
+            if (bundleIdentifier.includes('rider')) {
+                ideName = 'rider';
+            } else if (bundleIdentifier.includes('webstorm')) {
+                ideName = 'webstorm';
+            } else if (bundleIdentifier.includes('pycharm')) {
+                ideName = 'pycharm';
+            } else if (bundleIdentifier.includes('goland')) {
+                ideName = 'goland';
+            } else if (bundleIdentifier.includes('clion')) {
+                ideName = 'clion';
+            } else if (bundleIdentifier.includes('intellij')) {
+                ideName = 'idea';
+            } else {
+                const terminalEmulator = (process.env.TERMINAL_EMULATOR || '').toLowerCase();
+                if (terminalEmulator.includes('rider')) {
+                    ideName = 'rider';
+                } else if (terminalEmulator.includes('webstorm')) {
+                    ideName = 'webstorm';
+                } else if (terminalEmulator.includes('pycharm')) {
+                    ideName = 'pycharm';
+                } else if (terminalEmulator.includes('goland')) {
+                    ideName = 'goland';
+                } else if (terminalEmulator.includes('clion')) {
+                    ideName = 'clion';
+                } else if (terminalEmulator.includes('intellij')) {
+                    ideName = 'idea';
+                }
+            }
+
+            let ideCmd = ideName;
+            if (process.platform === 'win32') {
+                ideCmd = `${ideName}.bat`;
+            } else if (process.platform === 'linux') {
+                ideCmd = `${ideName}.sh`;
+            }
+
+            const watcher = spawn(process.execPath, [watcherScriptPath, repoPath, ideCmd], {
+                detached: !isAiderMode,
+                stdio: 'ignore'
+            });
+            if (!isAiderMode) {
+                watcher.unref();
+            }
+
+            console.log(`👀 Watching for file changes to show diffs in JetBrains IDE (${ideCmd})...`);
+        }
+    }
+
     const app = new App(configHandler);
 
     // If init command, exit after config initialization

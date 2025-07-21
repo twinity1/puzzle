@@ -315,21 +315,30 @@ async function createTemplateFiles(puzzleDir, pieceDir, pieceName, referenceFile
             }
         });
         
-        // Create prompt for AI
-        const prompt = `
-Create template files for a piece named "${pieceName}" based on the provided reference files.
+        const prompt = `Your task is to create a set of template files for a new software component (a "piece") named "${pieceName}".
+You will be given a set of reference files that demonstrate the desired structure and style.
 
-The template files should:
-1. Follow the same structure as the reference files
-2. Replace specific implementation details with generic examples
-3. Use variables in FILE and DIRECTORY NAMES where appropriate (e.g., {ENTITY_NAME}, {MODULE_NAME}, {APP_NAME}, {SERVICE_NAME} etc.). For example src/app/User/service.ts => src/app/{ENTITY_NAME}/service.ts or src/app/modules/Client/service.ts => src/app/modules/{MODULE_NAME}/service.ts
-4. Do not use those variables directly in the FILE CONTENT. Instead just use word "Example" => the file CONTENT must be syntactically correct (the brackets {} will probably break it)
-5. But not use the word Example in file NAMES!  
-6. Do not edit prepare() function in setup.mjs
-7. Try to understand what is user trying to achieve and update prompt in prompt() function
+**Instructions for creating template files:**
 
-Create the template files directly in the template directory.
-`;
+1.  **File and Directory Structure:**
+    *   Replicate the file and directory structure of the reference files.
+    *   In file and directory names, replace specific names (like \`User\`, \`Product\`, \`Client\`) with generic, uppercase placeholder variables (e.g., {ENTITY_NAME}, {MODULE_NAME}).
+    *   For example, \`src/api/services/UserService.js\` should become \`src/api/services/{ENTITY_NAME}Service.js\`.
+    *   **IMPORTANT**: Do not use the word "Example" in file or directory names.
+
+2.  **File Content:**
+    *   The content of the template files should be generic and reusable.
+    *   Replace any hardcoded names from the reference files (e.g., \`User\`, \`UserService\`) with generic but descriptive placeholders (e.g., \`ExampleEntity\`, \`ExampleService\`).
+    *   **CRITICAL**: Do not use the \`{VARIABLE_NAME}\` syntax inside the file content. This syntax is ONLY for file and directory names. Using it in the code will create syntax errors.
+    *   The generated code in each file must be syntactically correct and serve as a clear, working example.
+
+3.  **\`setup.mjs\` file:**
+    *   You will be provided a \`setup.mjs\` file.
+    *   Analyze the user's goal and the reference files to determine what the user is trying to achieve.
+    *   Based on your analysis, **update the \`prompt()\` function** in \`setup.mjs\` with a descriptive prompt that will be used to generate the final code from these templates.
+    *   **DO NOT MODIFY** the \`prepare()\` function in \`setup.mjs\`.
+
+**Goal:** The final output should be a set of high-quality, reusable template files and an updated \`setup.mjs\` that together can be used to scaffold new components. Create the template files in the \`template/\` directory.`;
 
         // Call aider to generate templates
         await aider(puzzleDir, prompt, referenceFiles, templateFiles, aiderOptions);
