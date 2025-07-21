@@ -168,18 +168,20 @@ async function main() {
 
             let ideCmd = ideName;
             if (process.platform === 'win32') {
-                ideCmd = `${ideName}.bat`;
+                ideCmd = `${ideName}`;
             } else if (process.platform === 'linux') {
-                ideCmd = `${ideName}.sh`;
+                ideCmd = `${ideName}`;
             }
 
             const watcher = spawn(process.execPath, [watcherScriptPath, repoPath, ideCmd], {
-                detached: !isAiderMode,
+                detached: true,
                 stdio: 'ignore'
             });
-            if (!isAiderMode) {
-                watcher.unref();
-            }
+
+            // Store watcher PID to pass to child process
+            global.jetbrainsWatcherPid = watcher.pid;
+
+            watcher.unref(); // Allow parent to exit independently
 
             console.log(`👀 Watching for file changes to show diffs in JetBrains IDE (${ideCmd})...`);
         }

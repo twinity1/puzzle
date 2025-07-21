@@ -17,9 +17,13 @@ function buildChatCommand(additionalAiderCmd, filesLink, lineContinuation, isCha
 function executeCommand(command, env = {}) {
     printAiderCommand(command);
     const { execSync } = require('child_process');
+    const finalEnv = { ...process.env, ...env };
+    if (global.jetbrainsWatcherPid) {
+        finalEnv.JETBRAINS_WATCHER_PID = global.jetbrainsWatcherPid;
+    }
     execSync(command, {
         stdio: 'inherit',
-        env: { ...process.env, ...env }
+        env: finalEnv
     });
 }
 

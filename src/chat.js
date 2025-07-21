@@ -162,12 +162,33 @@ aider.onExit(({ exitCode, signal }) => {
 // Handle termination
 function shutdown() {
     process.stdin.setRawMode(false);
-    aider.kill();
+
+    aider.kill('SIGKILL');
+
+    // Kill JetBrains watcher if its PID is passed
+    const watcherPid = process.env.JETBRAINS_WATCHER_PID;
+    if (watcherPid) {
+        try {
+            process.kill(parseInt(watcherPid, 10), 'SIGKILL');
+        } catch (e) {
+            // Ignore errors during shutdown, but log them.
+            console.error(`🔴 Failed to kill JetBrains watcher process with PID ${watcherPid}:`, e.message);
+        }
+    }
+
+    // Exit the process immediately
+    process.exit(0);
 }
 
-process.on('SIGINT', () => shutdown());
-process.on('SIGHUP', () => shutdown());
-process.on('exit', () => shutdown());
+// Only register these handlers once
+let shutdownHandlersRegistered = false;
+
+if (!shutdownHandlersRegistered) {
+    process.on('SIGINT', shutdown);
+    process.on('SIGHUP', shutdown);
+    process.on('exit', shutdown);
+    shutdownHandlersRegistered = true;
+}
 
 // Window resize handling
 process.stdout.on('resize', () => {
