@@ -143,6 +143,8 @@ async function main() {
                 ideName = 'webstorm';
             } else if (bundleIdentifier.includes('pycharm')) {
                 ideName = 'pycharm';
+            } else if (bundleIdentifier.includes('phpstorm')) {
+                ideName = 'phpstorm';
             } else if (bundleIdentifier.includes('goland')) {
                 ideName = 'goland';
             } else if (bundleIdentifier.includes('clion')) {
@@ -157,6 +159,8 @@ async function main() {
                     ideName = 'webstorm';
                 } else if (terminalEmulator.includes('pycharm')) {
                     ideName = 'pycharm';
+                } else if (terminalEmulator.includes('phpstorm')) {
+                    ideName = 'phpstorm';
                 } else if (terminalEmulator.includes('goland')) {
                     ideName = 'goland';
                 } else if (terminalEmulator.includes('clion')) {
