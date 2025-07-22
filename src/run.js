@@ -134,40 +134,34 @@ async function main() {
             const watcherScriptPath = path.join(__dirname, 'utils/jetbrainsHistoryWatcher.js');
             const repoPath = configHandler.getConfig().repoPath;
 
-            let ideName = 'idea'; // default
-            const bundleIdentifier = (process.env.__CFBundleIdentifier || '').toLowerCase();
+            let ideName;
 
-            if (bundleIdentifier.includes('rider')) {
-                ideName = 'rider';
-            } else if (bundleIdentifier.includes('webstorm')) {
-                ideName = 'webstorm';
-            } else if (bundleIdentifier.includes('pycharm')) {
-                ideName = 'pycharm';
-            } else if (bundleIdentifier.includes('phpstorm')) {
-                ideName = 'phpstorm';
-            } else if (bundleIdentifier.includes('goland')) {
-                ideName = 'goland';
-            } else if (bundleIdentifier.includes('clion')) {
-                ideName = 'clion';
-            } else if (bundleIdentifier.includes('intellij')) {
-                ideName = 'idea';
+            if (process.env.PUZZLE_IDE) {
+                ideName = process.env.PUZZLE_IDE;
+            } else if (userConfig.jetbrainsIde) {
+                ideName = userConfig.jetbrainsIde;
             } else {
-                const terminalEmulator = (process.env.TERMINAL_EMULATOR || '').toLowerCase();
-                if (terminalEmulator.includes('rider')) {
-                    ideName = 'rider';
-                } else if (terminalEmulator.includes('webstorm')) {
-                    ideName = 'webstorm';
-                } else if (terminalEmulator.includes('pycharm')) {
-                    ideName = 'pycharm';
-                } else if (terminalEmulator.includes('phpstorm')) {
-                    ideName = 'phpstorm';
-                } else if (terminalEmulator.includes('goland')) {
-                    ideName = 'goland';
-                } else if (terminalEmulator.includes('clion')) {
-                    ideName = 'clion';
-                } else if (terminalEmulator.includes('intellij')) {
-                    ideName = 'idea';
-                }
+                const { ide } = await prompt({
+                    type: 'list',
+                    name: 'ide',
+                    message: 'Which JetBrains IDE are you using?',
+                    choices: [
+                        'idea',
+                        'webstorm',
+                        'pycharm',
+                        'rider',
+                        'phpstorm',
+                        'goland',
+                        'clion'
+                    ],
+                    default: 'idea'
+                });
+                ideName = ide;
+                userConfig.jetbrainsIde = ideName;
+                writeUserConfig(userConfig);
+                console.log(`\n\x1b[90mIDE preference saved to \x1b[33m${userConfigPath}\x1b[90m.`);
+                console.log(`You can override this for the current session by setting the \x1b[33mPUZZLE_IDE\x1b[90m environment variable.\x1b[0m`);
+                console.log(`\x1b[90mExample: \x1b[33mexport PUZZLE_IDE=webstorm\x1b[0m\n`);
             }
 
             let ideCmd = ideName;

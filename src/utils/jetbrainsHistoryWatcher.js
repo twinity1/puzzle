@@ -26,7 +26,7 @@ function replaceLast(str, find, replace) {
 function start(repoPath, ideCmd) {
     const logFilePath = path.join(repoPath, 'puzzle-watcher.log');
     const log = (message) => {
-        fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+        // fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
     };
     log('Watcher starting...');
     const historyFilePath = path.join(repoPath, '.aider.chat.history.md');
@@ -40,6 +40,9 @@ function start(repoPath, ideCmd) {
     const processChanges = async (content) => {
         await new Promise(resolve => setTimeout(resolve, 100));
         log('Processing changes...');
+        log('---CONTENT TO PROCESS---');
+        log(content);
+        log('---END CONTENT TO PROCESS---');
         // Regex for edits (non-empty search block)
         const fencedInsideEditRegex = /(````|```)(?:[\w-]+)?\s*\r?\n([^\r\n`]+?)\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n([\s\S]+?)\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\1/gm;
         const fencedOutsideEditRegex = /^([^\r\n`]+?)\s*\r?\n\s*(````|```)(?:[\w-]+)?\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n([\s\S]+?)\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\2/gm;
@@ -58,6 +61,11 @@ function start(repoPath, ideCmd) {
 
             const isNew = search.trim() === '';
             log(`Found ${isNew ? 'new file ' : ''}${type} for file: ${trimmedFilePath}`);
+            log(`---SEARCH---`);
+            log(search);
+            log(`---REPLACE---`);
+            log(replace);
+            log(`---END PATCH---`);
 
             if (!patchesByFile.has(trimmedFilePath)) {
                 patchesByFile.set(trimmedFilePath, []);
@@ -113,6 +121,7 @@ function start(repoPath, ideCmd) {
 
                     if (!fs.existsSync(absoluteFilePath)) {
                         const newContent = patches[0].replace;
+                        log(`Creating new file ${absoluteFilePath} with content:\n${newContent}`);
                         const dir = path.dirname(absoluteFilePath);
                         if (!fs.existsSync(dir)) {
                             fs.mkdirSync(dir, { recursive: true });
@@ -157,6 +166,11 @@ function start(repoPath, ideCmd) {
                     const patch = patches[i];
                     if (currentContent.includes(patch.replace)) {
                         log(`Applying patch ${i + 1} to ${relativeFilePath}`);
+                        log(`---REPLACING IN-MEMORY CONTENT for ${relativeFilePath}---`);
+                        log(patch.replace);
+                        log(`---WITH---`);
+                        log(patch.search);
+                        log(`---END REPLACING---`);
                         currentContent = replaceLast(currentContent, patch.replace, patch.search);
                     } else {
                         log(`Could not apply patch for ${relativeFilePath}. Content to replace not found.`);
