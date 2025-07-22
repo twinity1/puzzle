@@ -10,6 +10,10 @@ const App = require('./app');
 const ConfigHandler = require('./config/configHandler');
 const { checkAndInstallAider } = require('./utils/aiderCheck');
 
+/**
+ * Main application entry point.
+ * Parses command line arguments, initializes configuration, and runs the application logic.
+ */
 async function main() {
     // Check execution mode by checking wrapper file
     const isAiderMode = process.argv[1].endsWith('puzzle-aider') || 
@@ -41,6 +45,11 @@ async function main() {
         .option('no-update-check', {
             type: 'boolean',
             description: 'Skip version and dependency update checks'
+        })
+        .option('ide', {
+            type: 'string',
+            description: 'Force a specific JetBrains IDE for diffs (e.g., "webstorm"). Overrides all other settings.\n' +
+                         'Values: idea, webstorm, pycharm, rider, phpstorm, goland, clion.'
         })
         .command('create-piece', 'Create a new puzzle piece template', (yargs) => {
             return yargs
@@ -105,7 +114,8 @@ async function main() {
     // Check for JetBrains IDE and start watcher
     if (process.env.TERMINAL_EMULATOR && process.env.TERMINAL_EMULATOR.includes('JetBrains')) {
         const userConfig = readUserConfig();
-        let showDiffs = userConfig.showJetBrainsDiff;
+        userConfig.jetbrains = userConfig.jetbrains || {};
+        let showDiffs = userConfig.jetbrains.showDiffs;
 
         if (showDiffs === undefined) {
             const { confirm } = await prompt({
@@ -125,7 +135,7 @@ async function main() {
                 console.log('│ \x1b[33;1m➡️ \x1b[1mOnly edit the file on the RIGHT side to keep your changes.\x1b[0m │');
                 console.log('└──────────────────────────────────────────────────────────────┘\n');
             }
-            userConfig.showJetBrainsDiff = showDiffs;
+            userConfig.jetbrains.showDiffs = showDiffs;
             writeUserConfig(userConfig);
             console.log(`\x1b[90mSetting saved to \x1b[33m${userConfigPath}\x1b[90m. You can change it there later.\x1b[0m`);
         }
@@ -136,10 +146,12 @@ async function main() {
 
             let ideName;
 
-            if (process.env.PUZZLE_IDE) {
+            if (argv.ide) {
+                ideName = argv.ide;
+            } else if (process.env.PUZZLE_IDE) {
                 ideName = process.env.PUZZLE_IDE;
-            } else if (userConfig.jetbrainsIde) {
-                ideName = userConfig.jetbrainsIde;
+            } else if (userConfig.jetbrains.ide) {
+                ideName = userConfig.jetbrains.ide;
             } else {
                 const { ide } = await prompt({
                     type: 'list',
@@ -157,7 +169,7 @@ async function main() {
                     default: 'idea'
                 });
                 ideName = ide;
-                userConfig.jetbrainsIde = ideName;
+                userConfig.jetbrains.ide = ideName;
                 writeUserConfig(userConfig);
                 console.log(`\n\x1b[90mIDE preference saved to \x1b[33m${userConfigPath}\x1b[90m.`);
                 console.log(`You can override this for the current session by setting the \x1b[33mPUZZLE_IDE\x1b[90m environment variable.\x1b[0m`);

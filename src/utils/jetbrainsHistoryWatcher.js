@@ -3,6 +3,11 @@ const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
 
+const binaryExtensions = new Set([
+    '.png', '.jpg', '.jpeg', '.gif', '.bmp', '.ico', '.pdf', '.zip', '.gz', '.tar', '.rar', '.7z',
+    '.exe', '.dll', '.so', '.class', '.jar', '.pyc', '.db', '.sqlite3', '.DS_Store'
+]);
+
 // A map to store the original content of files.
 const fileContentsCache = new Map();
 
@@ -34,9 +39,14 @@ async function showDiff(repoPath, relativeFilePath, ideCmd, log) {
             log(`Merge command finished with code ${code}.`);
             // Reload file content after showing diff
             if (fs.existsSync(absoluteFilePath)) {
-                const newContent = fs.readFileSync(absoluteFilePath, 'utf8');
-                fileContentsCache.set(normalizedRelativePath, newContent);
-                log(`Reloaded and cached new content of ${normalizedRelativePath}`);
+                const extension = path.extname(absoluteFilePath).toLowerCase();
+                if (binaryExtensions.has(extension)) {
+                    log(`Skipping binary file, not re-caching: ${normalizedRelativePath}`);
+                } else {
+                    const newContent = fs.readFileSync(absoluteFilePath, 'utf8');
+                    fileContentsCache.set(normalizedRelativePath, newContent);
+                    log(`Reloaded and cached new content of ${normalizedRelativePath}`);
+                }
             }
             resolve();
         });
@@ -120,6 +130,11 @@ function addPathToCache(repoPath, relativePath, log) {
             addPathToCache(repoPath, newRelativePath, log);
         }
     } else if (stats.isFile()) {
+        const extension = path.extname(absolutePath).toLowerCase();
+        if (binaryExtensions.has(extension)) {
+            log(`Skipping binary file, not caching: ${normalizedRelativePath}`);
+            return;
+        }
         const content = fs.readFileSync(absolutePath, 'utf8');
         fileContentsCache.set(normalizedRelativePath, content);
         log(`Cached content of ${normalizedRelativePath}`);
