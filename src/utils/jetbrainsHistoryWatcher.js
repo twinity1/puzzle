@@ -1,24 +1,187 @@
 const fs = require('fs');
 const path = require('path');
-const os =require('os');
+const os = require('os');
 const { spawn } = require('child_process');
 
-function replaceLast(str, find, replace) {
-    const lastIndex = str.lastIndexOf(find);
+// A map to store the original content of files.
+const fileContentsCache = new Map();
 
-    if (lastIndex === -1) {
-        return str;
+async function showDiff(repoPath, relativeFilePath, ideCmd, log) {
+    const normalizedRelativePath = path.normalize(relativeFilePath);
+    const originalContent = fileContentsCache.get(normalizedRelativePath) || '';
+    if (!fileContentsCache.has(normalizedRelativePath)) {
+        log(`No cached content for ${normalizedRelativePath}. Assuming new file.`);
+    }
+    const absoluteFilePath = path.join(repoPath, normalizedRelativePath);
+
+    if (!fs.existsSync(absoluteFilePath)) {
+        log(`File not found, cannot show diff: ${absoluteFilePath}`);
+        return;
     }
 
-    return str.substring(0, lastIndex) + replace + str.substring(lastIndex + find.length);
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'puzzle-watcher-'));
+    const oldFilePath = path.join(tempDir, path.basename(normalizedRelativePath).replace(/[^a-zA-Z0-9.-]/g, '_'));
+    fs.writeFileSync(oldFilePath, originalContent, 'utf8');
+    log(`Wrote old content to temp file: ${oldFilePath}`);
+
+    const mergeCommand = `${ideCmd} diff "${oldFilePath}" "${absoluteFilePath}"`;
+    log(`Executing merge command: ${mergeCommand}`);
+
+    await new Promise((resolve, reject) => {
+        const mergeProcess = spawn(mergeCommand, { stdio: 'inherit', shell: true });
+
+        mergeProcess.on('close', (code) => {
+            log(`Merge command finished with code ${code}.`);
+            // Reload file content after showing diff
+            if (fs.existsSync(absoluteFilePath)) {
+                const newContent = fs.readFileSync(absoluteFilePath, 'utf8');
+                fileContentsCache.set(normalizedRelativePath, newContent);
+                log(`Reloaded and cached new content of ${normalizedRelativePath}`);
+            }
+            resolve();
+        });
+
+        mergeProcess.on('error', (err) => {
+            log(`Failed to execute merge command for ${normalizedRelativePath}: ${err.message}`);
+            console.error(`Failed to execute merge command for ${normalizedRelativePath}:`, err);
+            reject(err);
+        });
+    });
 }
 
+function watchFileForEdits(repoPath, filePath, ideCmd, log) {
+    let lastKnownSize = -1;
+    try {
+        if (fs.existsSync(filePath)) {
+            lastKnownSize = fs.statSync(filePath).size;
+            log(`Initial chat history file size: ${lastKnownSize}`);
+        }
+    } catch (e) {
+        log(`Could not stat chat history file initially: ${e.message}`);
+    }
+
+    let debounceTimeout = null;
+    fs.watch(filePath, (eventType) => {
+        log(`Chat history watch event: ${eventType}`);
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            try {
+                if (!fs.existsSync(filePath)) {
+                    log('Chat history file deleted.');
+                    lastKnownSize = -1;
+                    return;
+                }
+                const stats = fs.statSync(filePath);
+                if (stats.size > lastKnownSize) {
+                    const fd = fs.openSync(filePath, 'r');
+                    const readFrom = lastKnownSize === -1 ? 0 : lastKnownSize;
+                    const toRead = stats.size - readFrom;
+                    const buffer = Buffer.alloc(toRead);
+                    if (toRead > 0) {
+                        fs.readSync(fd, buffer, 0, toRead, readFrom);
+                    }
+                    fs.closeSync(fd);
+                    
+                    const newContent = buffer.toString('utf8');
+                    log(`Read ${toRead} bytes from chat history file.`);
+
+                    const appliedEditRegex = /> Applied edit to (.+)/g;
+                    let match;
+                    while ((match = appliedEditRegex.exec(newContent)) !== null) {
+                        const filePaths = match[1].trim().split(', ');
+                        for (const relativeFilePath of filePaths) {
+                            log(`Detected applied edit for ${relativeFilePath}. Showing diff.`);
+                            showDiff(repoPath, relativeFilePath.trim(), ideCmd, log);
+                        }
+                    }
+                }
+                lastKnownSize = stats.size;
+            } catch (error) {
+                log(`Error in chat history watch callback: ${error.message}`);
+            }
+        }, 200);
+    });
+}
+
+function addPathToCache(repoPath, relativePath, log) {
+    const normalizedRelativePath = path.normalize(relativePath);
+    const absolutePath = path.join(repoPath, normalizedRelativePath);
+    if (!fs.existsSync(absolutePath)) {
+        log(`Path to add not found: ${absolutePath}`);
+        return;
+    }
+
+    const stats = fs.statSync(absolutePath);
+    if (stats.isDirectory()) {
+        log(`Caching directory: ${normalizedRelativePath}`);
+        const entries = fs.readdirSync(absolutePath, { withFileTypes: true });
+        for (const entry of entries) {
+            const newRelativePath = path.join(normalizedRelativePath, entry.name);
+            addPathToCache(repoPath, newRelativePath, log);
+        }
+    } else if (stats.isFile()) {
+        const content = fs.readFileSync(absolutePath, 'utf8');
+        fileContentsCache.set(normalizedRelativePath, content);
+        log(`Cached content of ${normalizedRelativePath}`);
+    }
+}
+
+function watchFileForAdds(repoPath, filePath, log) {
+    let lastKnownSize = -1;
+    try {
+        if (fs.existsSync(filePath)) {
+            lastKnownSize = fs.statSync(filePath).size;
+            log(`Initial input history file size: ${lastKnownSize}`);
+        }
+    } catch (e) {
+        log(`Could not stat input history file initially: ${e.message}`);
+    }
+
+    let debounceTimeout = null;
+    fs.watch(filePath, (eventType) => {
+        log(`Input history watch event: ${eventType}`);
+        clearTimeout(debounceTimeout);
+        debounceTimeout = setTimeout(() => {
+            try {
+                if (!fs.existsSync(filePath)) {
+                    log('Input history file deleted.');
+                    lastKnownSize = -1;
+                    return;
+                }
+                const stats = fs.statSync(filePath);
+                if (stats.size > lastKnownSize) {
+                    const fd = fs.openSync(filePath, 'r');
+                    const readFrom = lastKnownSize === -1 ? 0 : lastKnownSize;
+                    const toRead = stats.size - readFrom;
+                    const buffer = Buffer.alloc(toRead);
+                    if (toRead > 0) {
+                        fs.readSync(fd, buffer, 0, toRead, readFrom);
+                    }
+                    fs.closeSync(fd);
+                    
+                    const newContent = buffer.toString('utf8');
+                    log(`Read ${toRead} bytes from input history file.`);
+                    
+                    const addFileRegex = /^\+\/add\s+(.+)/gm;
+                    let match;
+                    while ((match = addFileRegex.exec(newContent)) !== null) {
+                        const relativePath = match[1].trim();
+                        addPathToCache(repoPath, relativePath, log);
+                    }
+                }
+                lastKnownSize = stats.size;
+            } catch (error) {
+                log(`Error in input history watch callback: ${error.message}`);
+            }
+        }, 200);
+    });
+}
 
 /**
- * Starts a watcher that monitors the Aider chat history file for changes.
- * When a new patch is detected, it reverts the changes in the corresponding
- * file and opens the IDE's merge tool to show a diff of the changes.
- * This is useful for reviewing and selectively applying AI-generated changes.
+ * Starts watchers that monitor Aider's input and chat history files.
+ * When a file is added to the chat via `+/add`, its content is cached.
+ * When Aider applies an edit, it opens the IDE's merge tool to show a diff
+ * of the changes.
  *
  * @param {string} repoPath - The absolute path to the repository root.
  * @param {string} ideCmd - The command to launch the IDE's merge tool (e.g., 'webstorm').
@@ -26,262 +189,29 @@ function replaceLast(str, find, replace) {
 function start(repoPath, ideCmd) {
     const logFilePath = path.join(repoPath, 'puzzle-watcher.log');
     const log = (message) => {
-        // fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+        if (process.env.PUZZLE_DEBUG === '1') {
+            fs.appendFileSync(logFilePath, `${new Date().toISOString()}: ${message}\n`);
+        }
     };
     log('Watcher starting...');
-    const historyFilePath = path.join(repoPath, '.aider.chat.history.md');
-    log(`Watching history file: ${historyFilePath}`);
 
-    if (!fs.existsSync(historyFilePath)) {
-        log('History file does not exist. Exiting watcher.');
-        return;
+    const inputHistoryPath = path.join(repoPath, '.aider.input.history');
+    const chatHistoryPath = path.join(repoPath, '.aider.chat.history.md');
+
+    if (!fs.existsSync(inputHistoryPath)) {
+        fs.writeFileSync(inputHistoryPath, '');
+        log(`Created empty file: ${inputHistoryPath}`);
+    }
+    if (!fs.existsSync(chatHistoryPath)) {
+        fs.writeFileSync(chatHistoryPath, '');
+        log(`Created empty file: ${chatHistoryPath}`);
     }
 
-    const processChanges = async (content) => {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        log('Processing changes...');
-        log('---CONTENT TO PROCESS---');
-        log(content);
-        log('---END CONTENT TO PROCESS---');
-        // Regex for edits (non-empty search block)
-        const fencedInsideEditRegex = /(````|```)(?:[\w-]+)?\s*\r?\n([^\r\n`]+?)\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n([\s\S]+?)\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\1/gm;
-        const fencedOutsideEditRegex = /^([^\r\n`]+?)\s*\r?\n\s*(````|```)(?:[\w-]+)?\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n([\s\S]+?)\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\2/gm;
-        const nonFencedEditRegex = /^([^\r\n`]+?)\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n([\s\S]+?)\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*$/gm;
+    log(`Watching input history: ${inputHistoryPath}`);
+    log(`Watching chat history: ${chatHistoryPath}`);
 
-        // Regex for new files (empty search block)
-        const fencedInsideNewFileRegex = /(````|```)(?:[\w-]+)?\s*\r?\n([^\r\n`]+?)\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\1/gm;
-        const fencedOutsideNewFileRegex = /^([^\r\n`]+?)\s*\r?\n\s*(````|```)(?:[\w-]+)?\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*\r?\n\s*\2/gm;
-        const nonFencedNewFileRegex = /^([^\r\n`]+?)\s*\r?\n\s*<<<<<<< SEARCH\s*\r?\n\s*=======\s*\r?\n([\s\S]*?)\s*\r?\n\s*>>>>>>> REPLACE\s*$/gm;
-
-        const patchesByFile = new Map();
-
-        const addPatch = (filePath, search, replace, type) => {
-            const trimmedFilePath = filePath.trim();
-            if (trimmedFilePath.includes('`') || trimmedFilePath.startsWith('>')) return;
-
-            const isNew = search.trim() === '';
-            log(`Found ${isNew ? 'new file ' : ''}${type} for file: ${trimmedFilePath}`);
-            log(`---SEARCH---`);
-            log(search);
-            log(`---REPLACE---`);
-            log(replace);
-            log(`---END PATCH---`);
-
-            if (!patchesByFile.has(trimmedFilePath)) {
-                patchesByFile.set(trimmedFilePath, []);
-            }
-            patchesByFile.get(trimmedFilePath).push({
-                search: search,
-                replace: replace
-            });
-        };
-
-        // Process edits first
-        content = content.replace(fencedInsideEditRegex, (match, fence, filePath, searchBlock, replaceBlock) => {
-            addPatch(filePath, searchBlock, replaceBlock, 'fenced patch');
-            return '';
-        });
-        content = content.replace(fencedOutsideEditRegex, (match, filePath, fence, searchBlock, replaceBlock) => {
-            addPatch(filePath, searchBlock, replaceBlock, 'fenced patch');
-            return '';
-        });
-        content = content.replace(nonFencedEditRegex, (match, filePath, searchBlock, replaceBlock) => {
-            addPatch(filePath, searchBlock, replaceBlock, 'diff patch');
-            return '';
-        });
-
-        // Then process new files
-        content = content.replace(fencedInsideNewFileRegex, (match, fence, filePath, replaceBlock) => {
-            addPatch(filePath, '', replaceBlock, 'fenced patch');
-            return '';
-        });
-        content = content.replace(fencedOutsideNewFileRegex, (match, filePath, fence, replaceBlock) => {
-            addPatch(filePath, '', replaceBlock, 'fenced patch');
-            return '';
-        });
-        content = content.replace(nonFencedNewFileRegex, (match, filePath, replaceBlock) => {
-            addPatch(filePath, '', replaceBlock, 'diff patch');
-            return '';
-        });
-
-        if (patchesByFile.size === 0) {
-            log('No patches found in new content.');
-            log(content);
-            return;
-        }
-
-        for (const [relativeFilePath, patches] of patchesByFile.entries()) {
-            try {
-                log(`Processing ${patches.length} patches for ${relativeFilePath}`);
-                const absoluteFilePath = path.join(repoPath, relativeFilePath);
-
-                const isNewFileCreation = patches.length === 1 && patches[0].search.trim() === '';
-                if (isNewFileCreation) {
-                    log(`Handling new file creation for diff: ${relativeFilePath}`);
-
-                    if (!fs.existsSync(absoluteFilePath)) {
-                        const newContent = patches[0].replace;
-                        log(`Creating new file ${absoluteFilePath} with content:\n${newContent}`);
-                        const dir = path.dirname(absoluteFilePath);
-                        if (!fs.existsSync(dir)) {
-                            fs.mkdirSync(dir, { recursive: true });
-                        }
-                        fs.writeFileSync(absoluteFilePath, newContent, 'utf8');
-                    }
-
-                    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'puzzle-watcher-'));
-                    const oldFilePath = path.join(tempDir, path.basename(relativeFilePath).replace(/[^a-zA-Z0-9.-]/g, '_'));
-                    fs.writeFileSync(oldFilePath, '', 'utf8');
-                    log(`Wrote empty content to temp file for new file diff: ${oldFilePath}`);
-
-                    const mergeCommand = `${ideCmd} diff "${oldFilePath}" "${absoluteFilePath}"`;
-                    log(`Executing merge command: ${mergeCommand}`);
-
-                    await new Promise((resolve, reject) => {
-                        const mergeProcess = spawn(mergeCommand, { stdio: 'inherit', shell: true });
-
-                        mergeProcess.on('close', (code) => {
-                            log(`Merge command finished with code ${code}.`);
-                            resolve();
-                        });
-
-                        mergeProcess.on('error', (err) => {
-                            log(`Failed to process patches for ${relativeFilePath}: ${err.message}`);
-                            console.error(`Failed to process patches for ${relativeFilePath}:`, err);
-                            reject(err);
-                        });
-                    });
-                    continue;
-                }
-
-                if (!fs.existsSync(absoluteFilePath)) {
-                    log(`File not found, skipping: ${absoluteFilePath}`);
-                    continue;
-                }
-
-                let currentContent = fs.readFileSync(absoluteFilePath, 'utf8');
-
-                let failed = false;
-                for (let i = patches.length - 1; i >= 0; i--) {
-                    const patch = patches[i];
-                    if (currentContent.includes(patch.replace)) {
-                        log(`Applying patch ${i + 1} to ${relativeFilePath}`);
-                        log(`---REPLACING IN-MEMORY CONTENT for ${relativeFilePath}---`);
-                        log(patch.replace);
-                        log(`---WITH---`);
-                        log(patch.search);
-                        log(`---END REPLACING---`);
-                        currentContent = replaceLast(currentContent, patch.replace, patch.search);
-                    } else {
-                        log(`Could not apply patch for ${relativeFilePath}. Content to replace not found.`);
-                        log(`---CONTENT TO REPLACE (patch.replace)---`);
-                        log(patch.replace);
-                        log(`---END CONTENT TO REPLACE---`);
-                        log(`---CURRENT FILE CONTENT (first 500 chars)---`);
-                        log(currentContent.substring(0, 500) + (currentContent.length > 500 ? '...' : ''));
-                        log(`---END CURRENT FILE CONTENT---`);
-                        console.error(`Could not apply patch for ${relativeFilePath}. Content to replace not found. This may be due to truncated diffs in the history file. Skipping.`);
-                        failed = true;
-                        break;
-                    }
-                }
-
-                if (failed) {
-                    continue;
-                }
-
-                const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'puzzle-watcher-'));
-                const oldFilePath = path.join(tempDir, path.basename(relativeFilePath).replace(/[^a-zA-Z0-9.-]/g, '_'));
-                fs.writeFileSync(oldFilePath, currentContent, 'utf8');
-                log(`Wrote old content to temp file: ${oldFilePath}`);
-
-                const mergeCommand = `${ideCmd} diff "${oldFilePath}" "${absoluteFilePath}"`;
-                log(`Executing merge command: ${mergeCommand}`);
-
-                await new Promise((resolve, reject) => {
-                    const mergeProcess = spawn(mergeCommand, { stdio: 'inherit', shell: true });
-
-                    mergeProcess.on('close', (code) => {
-                        log(`Merge command finished with code ${code}.`);
-                        resolve();
-                    });
-
-                    mergeProcess.on('error', (err) => {
-                        log(`Failed to process patches for ${relativeFilePath}: ${err.message}`);
-                        console.error(`Failed to process patches for ${relativeFilePath}:`, err);
-                        reject(err);
-                    });
-                });
-
-            } catch (error) {
-                log(`Failed to process patches for ${relativeFilePath}: ${error.message}`);
-                console.error(`Failed to process patches for ${relativeFilePath}:`, error);
-            }
-        }
-    };
-
-    let lastKnownSize = -1;
-    try {
-        lastKnownSize = fs.statSync(historyFilePath).size;
-        log(`Initial history file size: ${lastKnownSize}`);
-    } catch (e) {
-        log(`Could not stat history file initially: ${e.message}`);
-        // file might not exist yet
-    }
-
-    let contentBuffer = '';
-    let isProcessing = false;
-    let debounceTimeout = null;
-
-    fs.watch(historyFilePath, (eventType) => {
-        log(`Watch event: ${eventType}`);
-        clearTimeout(debounceTimeout);
-        debounceTimeout = setTimeout(() => {
-            if (isProcessing) {
-                log('Already processing, skipping watch event.');
-                return;
-            }
-            try {
-                if (!fs.existsSync(historyFilePath)) {
-                    log('History file deleted.');
-                    lastKnownSize = -1;
-                    contentBuffer = '';
-                    return;
-                }
-                const stats = fs.statSync(historyFilePath);
-                log(`File changed. Old size: ${lastKnownSize}, new size: ${stats.size}`);
-                if (stats.size > lastKnownSize) {
-                    const fd = fs.openSync(historyFilePath, 'r');
-                    const toRead = stats.size - lastKnownSize;
-                    const buffer = Buffer.alloc(toRead);
-                    fs.readSync(fd, buffer, 0, toRead, lastKnownSize);
-                    fs.closeSync(fd);
-                    log(`Read ${toRead} bytes from history file.`);
-
-                    const newContent = buffer.toString('utf8');
-                    contentBuffer += newContent;
-                    if (contentBuffer.includes('> Applied edit to ')) {
-                        log('Found trigger for patch processing. Processing changes.');
-                        isProcessing = true;
-                        const contentToProcess = contentBuffer;
-                        contentBuffer = '';
-                        processChanges(contentToProcess).finally(() => {
-                            isProcessing = false;
-                            log('Finished processing event.');
-                        });
-                    } else {
-                        log('Did not find trigger for patch processing in new content.');
-                    }
-                } else if (stats.size < lastKnownSize) {
-                    contentBuffer = '';
-                }
-                lastKnownSize = stats.size;
-            } catch (error) {
-                log(`Error in watch callback: ${error.message}`);
-                // Silently ignore errors to keep watcher alive
-            }
-        }, 200);
-    });
+    watchFileForAdds(repoPath, inputHistoryPath, log);
+    watchFileForEdits(repoPath, chatHistoryPath, ideCmd, log);
 }
 
 module.exports = { start };
